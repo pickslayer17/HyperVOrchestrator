@@ -15,7 +15,6 @@ $natName    = "@@network.natName@@"
 $hostIp     = "@@network.hostIp@@"
 $prefix     = @@network.prefix@@
 $vmName     = "@@vm.name@@"
-$stateFile  = "@@paths.stateFile@@"
 
 # Префикс подсети для NAT собираем из hostIp: x.y.z.0/prefix
 $octets = $hostIp.Split('.')
@@ -56,16 +55,10 @@ if ($adapter -and $adapter.SwitchName -ne $switchName) {
     Write-Host "VM connected to $switchName."
 }
 
-# === СОХРАНИТЬ ДИНАМИКУ В STATE (JSON) ===
-# Посчитали — записали. Было в файле что-то — мерджим поверх, остальное сохраняем.
-$state = @{}
-if (Test-Path $stateFile) {
-    try { $state = Get-Content $stateFile -Raw | ConvertFrom-Json -AsHashtable } catch { $state = @{} }
-}
-if (-not $state) { $state = @{} }
-$state["hostSwitchIfIndex"] = $ifIndex
-New-Item -ItemType Directory -Force -Path (Split-Path -Parent $stateFile) | Out-Null
-$state | ConvertTo-Json -Depth 10 | Set-Content -Path $stateFile -Encoding UTF8
-Write-Host "State written: hostSwitchIfIndex=$ifIndex -> $stateFile"
+# === СОХРАНИТЬ ДИНАМИКУ В STATE ===
+# Эмитим значение оркестратору: он положит его в карту интерполяции (следующий
+# шаг увидит @@state.hostSwitchIfIndex@@) и в artifacts/state.json. JSON руками
+# больше не пишем.
+Write-Host "::set state.hostSwitchIfIndex=$ifIndex"
 
 Write-Host "Host network ready."

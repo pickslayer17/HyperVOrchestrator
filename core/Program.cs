@@ -1,198 +1,119 @@
-using System.Diagnostics;
-
 namespace Orchestrator;
 
+// Точка входа и ОРКЕСТРАЦИЯ. Вывод -> Ui, выполнение -> ScriptRunner,
+// интерполяция -> ConfigInterpolator, рантайм-state -> StateStore,
+// статус меню -> SessionStatus. Здесь только склейка и цикл меню.
 internal static class Program
 {
-    // Результаты шагов в текущей сессии (по ScriptStep.Id).
-    // В меню: зелёный — успех, красный — провал, синий — ещё не запускался.
-    private static readonly HashSet<string> Succeeded = [];
-    private static readonly HashSet<string> Failed = [];
-
     private static int Main()
     {
         var repoRoot = FindRepoRoot();
         var scriptsDir = Path.Combine(repoRoot, "scripts");
         var config = AppConfig.Load(repoRoot);
-        var values = ConfigInterpolator.Flatten(config);
+
+        // Живая карта значений: статический конфиг + рантайм-state поверх.
+        var values = new Dictionary<string, string>(ConfigInterpolator.Flatten(config), StringComparer.OrdinalIgnoreCase);
+        var state = new StateStore(config.Paths.StateFile);
+        foreach (var kv in state.Values)
+            values[kv.Key] = kv.Value;
+
+        var runner = new ScriptRunner(values);
+        var status = new SessionStatus();
 
         while (true)
         {
             var steps = ScriptCatalog.Scan(scriptsDir);
-            DrawMenu(steps);
+            Ui.Menu(steps, status);
 
-            Console.Write("Choose step: ");
-            var input = CleanInput(Console.ReadLine());
-
+            var input = Ui.Prompt("Choose step: ");
             if (string.IsNullOrEmpty(input))
                 continue;
-
             if (input is "q" or "Q" or "0")
             {
-                Console.WriteLine("Bye.");
+                Ui.Plain("Bye.");
                 return 0;
             }
 
             if (int.TryParse(input, out var choice) && choice >= 1 && choice <= steps.Count)
             {
                 var step = steps[choice - 1];
-                if (RunStep(step, values))
-                {
-                    Succeeded.Add(step.Id);
-                    Failed.Remove(step.Id);
-                }
+                if (RunStep(step, runner, state, values))
+                    status.MarkOk(step.Id);
                 else
-                {
-                    Failed.Add(step.Id);
-                    Succeeded.Remove(step.Id);
-                }
+                    status.MarkFailed(step.Id);
             }
             else
             {
-                WriteLine($"Unknown choice: {input}", ConsoleColor.Red);
+                Ui.Line($"Unknown choice: {input}", ConsoleColor.Red);
             }
 
-            Console.WriteLine();
-            Console.WriteLine("Press Enter to return to menu...");
-            Console.ReadLine();
+            Ui.Blank();
+            Ui.Prompt("Press Enter to return to menu...");
         }
     }
 
-    private static void DrawMenu(IReadOnlyList<ScriptStep> steps)
-    {
-        Console.WriteLine();
-        Console.WriteLine("  TestRunner orchestrator");
-        Console.WriteLine("  =======================");
-        Console.WriteLine();
-
-        if (steps.Count == 0)
-        {
-            WriteLine("  (no scripts found)", ConsoleColor.Red);
-        }
-        else
-        {
-            string? lastGroup = null;
-            for (var i = 0; i < steps.Count; i++)
-            {
-                var step = steps[i];
-                if (step.Group != lastGroup)
-                {
-                    var label = step.Group == "" ? "(root)" : step.Group;
-                    WriteLine($"  [{label}]", ConsoleColor.DarkGray);
-                    lastGroup = step.Group;
-                }
-                var color =
-                    Succeeded.Contains(step.Id) ? ConsoleColor.Green :
-                    Failed.Contains(step.Id) ? ConsoleColor.Red :
-                    ConsoleColor.Blue;
-                WriteLine($"  {i + 1,2}. {step.Name}", color);
-            }
-        }
-
-        Console.WriteLine();
-        Console.WriteLine("  (q to quit)");
-        Console.WriteLine();
-    }
-
-    // Шаг = основной скрипт + опциональный .check.ps1.
-    // Есть check -> гоним его первым; exit 0 => запускаем основной, иначе стоп.
-    // Нет check -> "script without checks", сразу запускаем основной.
+    // Шаг = check (опционально) + основной скрипт.
+    // Есть check -> гоним первым; exit 0 => запускаем основной, иначе стоп.
     // Возвращает true, если основной скрипт отработал успешно (exit 0).
-    private static bool RunStep(ScriptStep step, IReadOnlyDictionary<string, string> values)
+    private static bool RunStep(ScriptStep step, ScriptRunner runner, StateStore state, IDictionary<string, string> values)
     {
         if (step.CheckPath is null)
         {
-            WriteLine("script without checks", ConsoleColor.DarkGray);
+            Ui.Line("script without checks", ConsoleColor.DarkGray);
         }
         else
         {
-            var (checkExit, _) = Execute(step.CheckPath, values);
-            if (checkExit != 0)
+            var check = Execute(step.CheckPath, runner, state, values);
+            if (!check.Found || check.ExitCode != 0)
             {
-                WriteLine($"[X] check failed (exit {checkExit}) — not running {step.Name}.", ConsoleColor.Red);
+                Ui.Line($"[X] check failed (exit {check.ExitCode}) — not running {step.Name}.", ConsoleColor.Red);
                 return false;
             }
         }
 
-        return RunScript(step.ScriptPath, values);
-    }
-
-    // Основной скрипт: "сделать дело". Репортит ✓/✗ по exit code.
-    // Возвращает true при exit 0. Зародыш IStep.Do / будущего RunOnHost.
-    private static bool RunScript(string scriptPath, IReadOnlyDictionary<string, string> values)
-    {
-        var (exit, found) = Execute(scriptPath, values);
-        if (!found)
+        var result = Execute(step.ScriptPath, runner, state, values);
+        if (!result.Found)
             return false;
 
-        if (exit == 0)
+        if (result.ExitCode == 0)
         {
-            WriteLine($"[OK] exit {exit}", ConsoleColor.Green);
+            Ui.Line($"[OK] exit {result.ExitCode}", ConsoleColor.Green);
             return true;
         }
 
-        WriteLine($"[X] exit {exit}", ConsoleColor.Red);
+        Ui.Line($"[X] exit {result.ExitCode}", ConsoleColor.Red);
         return false;
     }
 
-    // Общая механика: прочитать текст .ps1, подменить @@config.path@@ значениями
-    // из конфига, выполнить готовый текст через powershell.exe. Скрипту всё равно,
-    // где он выполнится — он получает уже интерполированный текст.
-    private static (int exitCode, bool found) Execute(string scriptPath, IReadOnlyDictionary<string, string> values)
+    // Запустить один .ps1: показать заголовок, отдать в runner, применить
+    // ::set в state/карту, напечатать вывод. Печать живёт здесь, не в runner.
+    private static RunResult Execute(string scriptPath, ScriptRunner runner, StateStore state, IDictionary<string, string> values)
     {
-        Console.WriteLine();
-        WriteLine($"--- {Path.GetFileName(scriptPath)} ---", ConsoleColor.DarkGray);
+        Ui.Blank();
+        Ui.Line($"--- {Path.GetFileName(scriptPath)} ---", ConsoleColor.DarkGray);
 
-        if (!File.Exists(scriptPath))
+        var result = runner.Run(scriptPath);
+
+        if (result.Error is not null)
         {
-            WriteLine($"[X] script not found: {scriptPath}", ConsoleColor.Red);
-            return (-1, false);
+            Ui.Line($"[X] {result.Error}", ConsoleColor.Red);
+            return result;
         }
 
-        string interpolated;
-        try
-        {
-            interpolated = ConfigInterpolator.Interpolate(File.ReadAllText(scriptPath), values);
-        }
-        catch (InvalidOperationException ex)
-        {
-            WriteLine($"[X] {ex.Message}", ConsoleColor.Red);
-            return (-1, false);
-        }
+        state.Apply(result.Sets, values);
 
-        // Готовую строку скармливаем powershell через stdin (-Command -), без файлов.
-        var psi = new ProcessStartInfo
-        {
-            FileName = "powershell.exe",
-            RedirectStandardInput = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-        };
-        psi.ArgumentList.Add("-NoProfile");
-        psi.ArgumentList.Add("-ExecutionPolicy");
-        psi.ArgumentList.Add("Bypass");
-        psi.ArgumentList.Add("-Command");
-        psi.ArgumentList.Add("-");
+        if (!string.IsNullOrWhiteSpace(result.Stdout))
+            Ui.Raw(result.Stdout.EndsWith('\n') ? result.Stdout : result.Stdout + "\n");
+        if (!string.IsNullOrWhiteSpace(result.Stderr))
+            Ui.Line(result.Stderr.TrimEnd(), ConsoleColor.Red);
+        foreach (var (key, value) in result.Sets)
+            Ui.Line($"  state: {key} = {value}", ConsoleColor.DarkGray);
 
-        using var proc = Process.Start(psi)!;
-        proc.StandardInput.Write(interpolated);
-        proc.StandardInput.Close();
-
-        var stdout = proc.StandardOutput.ReadToEnd();
-        var stderr = proc.StandardError.ReadToEnd();
-        proc.WaitForExit();
-
-        if (!string.IsNullOrWhiteSpace(stdout))
-            Console.Write(stdout);
-        if (!string.IsNullOrWhiteSpace(stderr))
-            WriteLine(stderr.TrimEnd(), ConsoleColor.Red);
-
-        return (proc.ExitCode, true);
+        return result;
     }
 
-    // Корень репо = ближайшая вверх по дереву папка, содержащая scripts/.
-    // Не зависит от глубины bin/Debug/netX.
+    // Корень репо = ближайшая вверх папка, содержащая scripts/. Не зависит от
+    // глубины bin/Debug/netX.
     private static string FindRepoRoot()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
@@ -203,18 +124,5 @@ internal static class Program
             dir = dir.Parent;
         }
         throw new InvalidOperationException("Repo root not found (no 'scripts' folder above the exe).");
-    }
-
-    // Trim whitespace plus BOM (U+FEFF) / zero-width space (U+200B) that can
-    // sneak in when input is piped (e.g. PowerShell here-strings).
-    private static string? CleanInput(string? raw) =>
-        raw?.Trim().Trim('﻿', '​').Trim();
-
-    private static void WriteLine(string text, ConsoleColor color)
-    {
-        var prev = Console.ForegroundColor;
-        Console.ForegroundColor = color;
-        Console.WriteLine(text);
-        Console.ForegroundColor = prev;
     }
 }

@@ -1,37 +1,28 @@
+#:target vm
 # 02 - Положить FlaUI check-файл (Program.cs) в проект и собрать.
 #      Program.cs гоняет цикл: ищет окно Edge и максимизирует/восстанавливает,
 #      пишет лог. Это smoke-проверка UI Automation внутри ВМ.
 #
 # Перенесено из setup_dotnet/put_flaUI_check_file_to_vm.ps1.
-# VM-side: выполняется ВНУТРИ ВМ через Invoke-Command -VMName -Credential.
+# #:target vm -> оркестратор заворачивает в Invoke-Command -VMName сам.
 #
-# !!! ВНИМАНИЕ (проверить глазами):
-# C#-код Program.cs содержит свой $"...{}" (это C#-интерполяция, НЕ PowerShell).
-# Здесь here-string ЛИТЕРАЛЬНЫЙ (@'...'@), поэтому C#-код не трогается.
-# Путь лога собирается из $desktop и подставляется ЗАМЕНОЙ токена __LOGPATH__
-# уже внутри гостя (here-string литеральный, C#-код не трогаем).
+# !!! ВНИМАНИЕ: C#-код Program.cs содержит свой $"...{}" (это C#-интерполяция,
+# НЕ PowerShell). here-string ЛИТЕРАЛЬНЫЙ (@'...'@), поэтому C#-код не трогается.
+# Путь лога подставляется заменой токена __LOGPATH__ уже внутри гостя.
 
 $ErrorActionPreference = "Stop"
 
-$vmName      = "@@vm.name@@"
-$vmUser      = "@@credentials.user@@"
-$vmPass      = "@@credentials.password@@"
 $desktop     = "C:\Users\@@credentials.user@@\Desktop"
 $projectName = "@@flaui.projectName@@"
 
-$cred = New-Object System.Management.Automation.PSCredential($vmUser, (ConvertTo-SecureString $vmPass -AsPlainText -Force))
+$env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine")
 
-Invoke-Command -VMName $vmName -Credential $cred -ArgumentList $desktop, $projectName -ScriptBlock {
-    param($desktop, $projectName)
+$projectDir = "$desktop\$projectName"
+$logPath = "$desktop\flaui_log.txt"
 
-    $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine")
-
-    $projectDir = "$desktop\$projectName"
-    $logPath = "$desktop\flaui_log.txt"
-
-    # C#-код Program.cs. Литеральный here-string: PowerShell не трогает $"..." внутри.
-    # __LOGPATH__ — наш токен, заменяется на реальный путь лога ниже.
-    $program = @'
+# C#-код Program.cs. Литеральный here-string: PowerShell не трогает $"..." внутри.
+# __LOGPATH__ — наш токен, заменяется на реальный путь лога ниже.
+$program = @'
 using System;
 using System.Threading;
 using FlaUI.Core;
@@ -80,11 +71,10 @@ for (int i = 0; i < 2000; i++)
 }
 '@
 
-    # Подставить реальный путь лога (экранируем \ для C#-verbatim-строки не нужно — это @"...").
-    $program = $program.Replace("__LOGPATH__", $logPath)
+# Подставить реальный путь лога.
+$program = $program.Replace("__LOGPATH__", $logPath)
 
-    Set-Content -Path "$projectDir\Program.cs" -Value $program
+Set-Content -Path "$projectDir\Program.cs" -Value $program
 
-    cd $projectDir
-    dotnet build
-}
+cd $projectDir
+dotnet build
