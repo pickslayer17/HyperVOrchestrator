@@ -26,7 +26,7 @@ Write-Host "Using drive letters: EFI=$efiLetter, Windows=$winLetter"
 
 # === СОЗДАТЬ И РАЗМЕТИТЬ VHDX ===
 Write-Host "Creating VHDX..."
-New-VHD -Path $vhdPath -SizeBytes 40GB -Dynamic
+New-VHD -Path $vhdPath -SizeBytes #insert from config GB -Dynamic
 Mount-VHD -Path $vhdPath
 $diskNumber = (Get-VHD -Path $vhdPath).DiskNumber
 Initialize-Disk -Number $diskNumber -PartitionStyle GPT

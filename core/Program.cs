@@ -4,10 +4,17 @@ namespace Orchestrator;
 
 internal static class Program
 {
+    // Результаты шагов в текущей сессии (по ScriptStep.Id).
+    // В меню: зелёный — успех, красный — провал, синий — ещё не запускался.
+    private static readonly HashSet<string> Succeeded = [];
+    private static readonly HashSet<string> Failed = [];
+
     private static int Main()
     {
         var repoRoot = FindRepoRoot();
         var scriptsDir = Path.Combine(repoRoot, "scripts");
+        var config = AppConfig.Load(repoRoot);
+        var values = ConfigInterpolator.Flatten(config);
 
         while (true)
         {
@@ -28,7 +35,17 @@ internal static class Program
 
             if (int.TryParse(input, out var choice) && choice >= 1 && choice <= steps.Count)
             {
-                RunStep(steps[choice - 1]);
+                var step = steps[choice - 1];
+                if (RunStep(step, values))
+                {
+                    Succeeded.Add(step.Id);
+                    Failed.Remove(step.Id);
+                }
+                else
+                {
+                    Failed.Add(step.Id);
+                    Succeeded.Remove(step.Id);
+                }
             }
             else
             {
@@ -64,7 +81,11 @@ internal static class Program
                     WriteLine($"  [{label}]", ConsoleColor.DarkGray);
                     lastGroup = step.Group;
                 }
-                WriteLine($"  {i + 1,2}. {step.Name}", ConsoleColor.Blue);
+                var color =
+                    Succeeded.Contains(step.Id) ? ConsoleColor.Green :
+                    Failed.Contains(step.Id) ? ConsoleColor.Red :
+                    ConsoleColor.Blue;
+                WriteLine($"  {i + 1,2}. {step.Name}", color);
             }
         }
 
@@ -76,7 +97,8 @@ internal static class Program
     // Шаг = основной скрипт + опциональный .check.ps1.
     // Есть check -> гоним его первым; exit 0 => запускаем основной, иначе стоп.
     // Нет check -> "script without checks", сразу запускаем основной.
-    private static void RunStep(ScriptStep step)
+    // Возвращает true, если основной скрипт отработал успешно (exit 0).
+    private static bool RunStep(ScriptStep step, IReadOnlyDictionary<string, string> values)
     {
         if (step.CheckPath is null)
         {
@@ -84,34 +106,39 @@ internal static class Program
         }
         else
         {
-            var (checkExit, _) = Execute(step.CheckPath);
+            var (checkExit, _) = Execute(step.CheckPath, values);
             if (checkExit != 0)
             {
                 WriteLine($"[X] check failed (exit {checkExit}) — not running {step.Name}.", ConsoleColor.Red);
-                return;
+                return false;
             }
         }
 
-        RunScript(step.ScriptPath);
+        return RunScript(step.ScriptPath, values);
     }
 
     // Основной скрипт: "сделать дело". Репортит ✓/✗ по exit code.
-    // Зародыш IStep.Do / будущего RunOnHost.
-    private static void RunScript(string scriptPath)
+    // Возвращает true при exit 0. Зародыш IStep.Do / будущего RunOnHost.
+    private static bool RunScript(string scriptPath, IReadOnlyDictionary<string, string> values)
     {
-        var (exit, found) = Execute(scriptPath);
+        var (exit, found) = Execute(scriptPath, values);
         if (!found)
-            return;
+            return false;
 
         if (exit == 0)
+        {
             WriteLine($"[OK] exit {exit}", ConsoleColor.Green);
-        else
-            WriteLine($"[X] exit {exit}", ConsoleColor.Red);
+            return true;
+        }
+
+        WriteLine($"[X] exit {exit}", ConsoleColor.Red);
+        return false;
     }
 
-    // Общая механика: запуск .ps1 на хосте через внешний powershell.exe,
-    // печать stdout/stderr. Возвращает exit code и был ли найден файл.
-    private static (int exitCode, bool found) Execute(string scriptPath)
+    // Общая механика: прочитать текст .ps1, подменить @@config.path@@ значениями
+    // из конфига, выполнить готовый текст через powershell.exe. Скрипту всё равно,
+    // где он выполнится — он получает уже интерполированный текст.
+    private static (int exitCode, bool found) Execute(string scriptPath, IReadOnlyDictionary<string, string> values)
     {
         Console.WriteLine();
         WriteLine($"--- {Path.GetFileName(scriptPath)} ---", ConsoleColor.DarkGray);
@@ -122,16 +149,36 @@ internal static class Program
             return (-1, false);
         }
 
+        string interpolated;
+        try
+        {
+            interpolated = ConfigInterpolator.Interpolate(File.ReadAllText(scriptPath), values);
+        }
+        catch (InvalidOperationException ex)
+        {
+            WriteLine($"[X] {ex.Message}", ConsoleColor.Red);
+            return (-1, false);
+        }
+
+        // Готовую строку скармливаем powershell через stdin (-Command -), без файлов.
         var psi = new ProcessStartInfo
         {
             FileName = "powershell.exe",
-            Arguments = $"-NoProfile -ExecutionPolicy Bypass -File \"{scriptPath}\"",
+            RedirectStandardInput = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
         };
+        psi.ArgumentList.Add("-NoProfile");
+        psi.ArgumentList.Add("-ExecutionPolicy");
+        psi.ArgumentList.Add("Bypass");
+        psi.ArgumentList.Add("-Command");
+        psi.ArgumentList.Add("-");
 
         using var proc = Process.Start(psi)!;
+        proc.StandardInput.Write(interpolated);
+        proc.StandardInput.Close();
+
         var stdout = proc.StandardOutput.ReadToEnd();
         var stderr = proc.StandardError.ReadToEnd();
         proc.WaitForExit();

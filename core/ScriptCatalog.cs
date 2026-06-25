@@ -15,6 +15,9 @@ internal sealed record ScriptStep
 
     // Полный путь к check-скрипту ("можно ли запускать"), либо null если пары нет.
     public string? CheckPath { get; init; }
+
+    // Стабильный идентификатор шага (имя может повторяться в разных папках).
+    public string Id => $"{Group}/{Name}";
 }
 
 // Сканирует scripts/ рекурсивно и строит плоский список шагов для меню.

@@ -2,16 +2,16 @@
 #      снести существующую ВМ и старый VHDX (откат предыдущей попытки).
 #
 # Перенесено из CreateVM_DISM.ps1 (секции НАСТРОЙКИ / ПРОВЕРКИ / ПОИСК БУКВ / ОЧИСТКА).
-# Выводит выбранные буквы дисков, чтобы следующий шаг знал, что использовать.
+# Значения double@...double@ подменяет оркестратор из конфига перед выполнением.
 
 $ErrorActionPreference = "Stop"
 
-# === НАСТРОЙКИ ===
-$vmName = "TestRunner"
-$vmPath = "D:\VMs"
-$vhdPath = "$vmPath\$vmName.vhdx"
-$windowsIso = "$vmPath\26200.6584.250915-1905.25h2_ge_release_svc_refresh_CLIENTENTERPRISEEVAL_OEMRET_x64FRE_en-us.iso"
-$unattendXml = "$vmPath\unattend\autounattend.xml"
+# === НАСТРОЙКИ (из конфига) ===
+$vmName = "@@vm.name@@"
+$windowsIso = "@@paths.windowsIso@@"
+$unattendXml = "@@paths.unattendXml@@"
+# VHDX кладём рядом с ISO, имя = <VmName>.vhdx
+$vhdPath = Join-Path (Split-Path -Parent $windowsIso) "$vmName.vhdx"
 
 # === ПРОВЕРКИ ===
 if (-not (Test-Path $windowsIso)) { throw "Windows ISO not found: $windowsIso" }

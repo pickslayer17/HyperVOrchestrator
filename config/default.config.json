@@ -1,0 +1,31 @@
+{
+  "vm": {
+    "name": "TestRunner2",
+    "memoryGb": 4,
+    "cpuCount": 4,
+    "diskSizeGb": 40
+  },
+  "credentials": {
+    "user": "",
+    "password": ""
+  },
+  "network": {
+    "switchName": "NATSwitch",
+    "hostIp": "192.168.50.1",
+    "vmIp": "192.168.50.2",
+    "prefix": 24,
+    "proxyPort": 3128,
+    "rdpForwardPort": 13389,
+    "dnsServer": "8.8.8.8"
+  },
+  "paths": {
+    "windowsIso": "",
+    "unattendXml": "",
+    "officeArchive": ""
+  },
+  "office": {
+    "channel": "Current",
+    "edition": "64",
+    "apps": ["Word"]
+  }
+}
