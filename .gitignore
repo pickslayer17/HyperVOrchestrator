@@ -1,0 +1,11 @@
+*.iso
+*.vhdx
+*.avhdx
+office.zip
+office_cache/
+config_final.xml
+
+# на будущее
+local.config.*
+*.local.*
+secrets.*
