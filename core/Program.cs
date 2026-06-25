@@ -11,7 +11,9 @@ internal static class Program
 
         while (true)
         {
-            DrawMenu();
+            var steps = ScriptCatalog.Scan(scriptsDir);
+            DrawMenu(steps);
+
             Console.Write("Choose step: ");
             var input = CleanInput(Console.ReadLine());
 
@@ -24,9 +26,9 @@ internal static class Program
                 return 0;
             }
 
-            if (input == "1")
+            if (int.TryParse(input, out var choice) && choice >= 1 && choice <= steps.Count)
             {
-                RunStep("test", scriptsDir);
+                RunStep(steps[choice - 1]);
             }
             else
             {
@@ -39,31 +41,77 @@ internal static class Program
         }
     }
 
-    private static void DrawMenu()
+    private static void DrawMenu(IReadOnlyList<ScriptStep> steps)
     {
         Console.WriteLine();
         Console.WriteLine("  TestRunner orchestrator");
         Console.WriteLine("  =======================");
         Console.WriteLine();
-        WriteLine("  1. test", ConsoleColor.Blue);
+
+        if (steps.Count == 0)
+        {
+            WriteLine("  (no scripts found)", ConsoleColor.Red);
+        }
+        else
+        {
+            string? lastGroup = null;
+            for (var i = 0; i < steps.Count; i++)
+            {
+                var step = steps[i];
+                if (step.Group != lastGroup)
+                {
+                    var label = step.Group == "" ? "(root)" : step.Group;
+                    WriteLine($"  [{label}]", ConsoleColor.DarkGray);
+                    lastGroup = step.Group;
+                }
+                WriteLine($"  {i + 1,2}. {step.Name}", ConsoleColor.Blue);
+            }
+        }
+
         Console.WriteLine();
         Console.WriteLine("  (q to quit)");
         Console.WriteLine();
     }
 
-    // Шаг = два скрипта: scripts/<name>.ps1 (positive) и scripts/_<name>.ps1 (negative).
-    // На этом срезе просто гоним оба по очереди и печатаем результат.
-    private static void RunStep(string name, string scriptsDir)
+    // Шаг = основной скрипт + опциональный .check.ps1.
+    // Есть check -> гоним его первым; exit 0 => запускаем основной, иначе стоп.
+    // Нет check -> "script without checks", сразу запускаем основной.
+    private static void RunStep(ScriptStep step)
     {
-        var positive = Path.Combine(scriptsDir, $"{name}.ps1");
-        var negative = Path.Combine(scriptsDir, $"_{name}.ps1");
+        if (step.CheckPath is null)
+        {
+            WriteLine("script without checks", ConsoleColor.DarkGray);
+        }
+        else
+        {
+            var (checkExit, _) = Execute(step.CheckPath);
+            if (checkExit != 0)
+            {
+                WriteLine($"[X] check failed (exit {checkExit}) — not running {step.Name}.", ConsoleColor.Red);
+                return;
+            }
+        }
 
-        RunScript(negative);
-        RunScript(positive);
+        RunScript(step.ScriptPath);
     }
 
-    // Будущий RunOnHost: запуск .ps1 на хосте через внешний powershell.exe.
+    // Основной скрипт: "сделать дело". Репортит ✓/✗ по exit code.
+    // Зародыш IStep.Do / будущего RunOnHost.
     private static void RunScript(string scriptPath)
+    {
+        var (exit, found) = Execute(scriptPath);
+        if (!found)
+            return;
+
+        if (exit == 0)
+            WriteLine($"[OK] exit {exit}", ConsoleColor.Green);
+        else
+            WriteLine($"[X] exit {exit}", ConsoleColor.Red);
+    }
+
+    // Общая механика: запуск .ps1 на хосте через внешний powershell.exe,
+    // печать stdout/stderr. Возвращает exit code и был ли найден файл.
+    private static (int exitCode, bool found) Execute(string scriptPath)
     {
         Console.WriteLine();
         WriteLine($"--- {Path.GetFileName(scriptPath)} ---", ConsoleColor.DarkGray);
@@ -71,7 +119,7 @@ internal static class Program
         if (!File.Exists(scriptPath))
         {
             WriteLine($"[X] script not found: {scriptPath}", ConsoleColor.Red);
-            return;
+            return (-1, false);
         }
 
         var psi = new ProcessStartInfo
@@ -93,10 +141,7 @@ internal static class Program
         if (!string.IsNullOrWhiteSpace(stderr))
             WriteLine(stderr.TrimEnd(), ConsoleColor.Red);
 
-        if (proc.ExitCode == 0)
-            WriteLine($"[OK] exit {proc.ExitCode}", ConsoleColor.Green);
-        else
-            WriteLine($"[X] exit {proc.ExitCode}", ConsoleColor.Red);
+        return (proc.ExitCode, true);
     }
 
     // Корень репо = ближайшая вверх по дереву папка, содержащая scripts/.
