@@ -9,3 +9,7 @@ config_final.xml
 local.config.*
 *.local.*
 secrets.*
+
+# C# build output
+bin/
+obj/
