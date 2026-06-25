@@ -13,3 +13,6 @@ secrets.*
 # C# build output
 bin/
 obj/
+
+# runtime artifacts (state, generated files)
+artifacts/

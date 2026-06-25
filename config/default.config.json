@@ -3,7 +3,9 @@
     "name": "TestRunner2",
     "memoryGb": 4,
     "cpuCount": 4,
-    "diskSizeGb": 40
+    "diskSizeGb": 40,
+    "videoWidth": 1920,
+    "videoHeight": 1080
   },
   "credentials": {
     "user": "",
@@ -11,17 +13,33 @@
   },
   "network": {
     "switchName": "NATSwitch",
+    "natName": "VMNat",
     "hostIp": "192.168.50.1",
     "vmIp": "192.168.50.2",
     "prefix": 24,
     "proxyPort": 3128,
     "rdpForwardPort": 13389,
-    "dnsServer": "8.8.8.8"
+    "dnsServer": "8.8.8.8",
+    "guestInterfaceAlias": "Ethernet"
   },
   "paths": {
+    "vmDir": "",
     "windowsIso": "",
     "unattendXml": "",
-    "officeArchive": ""
+    "officeArchive": "",
+    "stateFile": "artifacts/state.json",
+    "dotnetInstallDir": "C:\\Program Files\\dotnet"
+  },
+  "dotnet": {
+    "channel": "10.0",
+    "quality": "GA",
+    "installScriptUrl": "https://builds.dotnet.microsoft.com/dotnet/scripts/v1/dotnet-install.ps1"
+  },
+  "flaui": {
+    "projectName": "FlaUICheck",
+    "baseFramework": "net10.0",
+    "targetFramework": "net10.0-windows",
+    "package": "FlaUI.UIA3"
   },
   "office": {
     "channel": "Current",

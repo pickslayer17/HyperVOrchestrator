@@ -2,10 +2,11 @@
 #      Окно нужно, чтобы видеть установку Windows (specialize + OOBE) глазами.
 #
 # Перенесено из CreateVM_DISM.ps1 (секция 6).
+# Значения подменяет оркестратор из конфига перед выполнением.
 
 $ErrorActionPreference = "Stop"
 
-$vmName = "TestRunner"
+$vmName = "@@vm.name@@"
 
 Write-Host "Starting VM..."
 Start-VM -VMName $vmName

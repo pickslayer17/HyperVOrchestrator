@@ -1,18 +1,21 @@
-# 02 - Создать ВМ из готового VHDX: Gen2, 4GB RAM, 4 vCPU, TPM.
+# 02 - Создать ВМ из готового VHDX: Gen2, RAM/CPU из конфига, TPM.
 #
 # Перенесено из CreateVM_DISM.ps1 (секция 5).
+# Значения подменяет оркестратор из конфига перед выполнением.
 
 $ErrorActionPreference = "Stop"
 
-# === НАСТРОЙКИ ===
-$vmName = "TestRunner"
-$vmPath = "D:\VMs"
-$vhdPath = "$vmPath\$vmName.vhdx"
+# === НАСТРОЙКИ (из конфига) ===
+$vmName = "@@vm.name@@"
+$memoryGb = @@vm.memoryGb@@
+$cpuCount = @@vm.cpuCount@@
+# VHDX = директория ВМ из конфига + имя ВМ + .vhdx
+$vhdPath = Join-Path "@@paths.vmDir@@" "$vmName.vhdx"
 
 # === СОЗДАТЬ VM ===
 Write-Host "Creating VM..."
-New-VM -Name $vmName -MemoryStartupBytes 4GB -Generation 2 -VHDPath $vhdPath
-Set-VMProcessor -VMName $vmName -Count 4
+New-VM -Name $vmName -MemoryStartupBytes (${memoryGb}GB) -Generation 2 -VHDPath $vhdPath
+Set-VMProcessor -VMName $vmName -Count $cpuCount
 Set-VMKeyProtector -VMName $vmName -NewLocalKeyProtector
 Enable-VMTPM -VMName $vmName
 Write-Host "VM created with TPM."

@@ -1,8 +1,9 @@
 # check для 03-Set-VmVideo: ВМ должна существовать и быть ВЫКЛЮЧЕНА —
 # Set-VMVideo не применяется к запущенной машине.
 # exit 0 = можно запускать основной скрипт.
+# Значения подменяет оркестратор из конфига перед выполнением.
 
-$vmName = "TestRunner"
+$vmName = "@@vm.name@@"
 
 $vm = Get-VM -Name $vmName -ErrorAction SilentlyContinue
 if (-not $vm) {

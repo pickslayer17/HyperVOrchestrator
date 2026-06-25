@@ -1,9 +1,9 @@
 # check для 01-Build-Vhdx: нужны ISO и autounattend.xml — без них DISM-применять нечего.
 # exit 0 = можно запускать основной скрипт.
+# Значения подменяет оркестратор из конфига перед выполнением.
 
-$vmPath = "D:\VMs"
-$windowsIso = "$vmPath\26200.6584.250915-1905.25h2_ge_release_svc_refresh_CLIENTENTERPRISEEVAL_OEMRET_x64FRE_en-us.iso"
-$unattendXml = "$vmPath\unattend\autounattend.xml"
+$windowsIso = "@@paths.windowsIso@@"
+$unattendXml = "@@paths.unattendXml@@"
 
 if (-not (Test-Path $windowsIso)) {
     Write-Host "Windows ISO not found: $windowsIso"

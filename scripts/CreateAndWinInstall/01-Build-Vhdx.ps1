@@ -3,16 +3,18 @@
 #      Всё в одном try/finally: при ошибке маунты/буквы откатываются в finally.
 #
 # Перенесено из CreateVM_DISM.ps1 (секции 1-4 + finally).
-# Самодостаточен: сам находит свободные буквы и пути, ни от чего не зависит.
+# Самодостаточен: сам находит свободные буквы и пути.
+# Значения подменяет оркестратор из конфига перед выполнением.
 
 $ErrorActionPreference = "Stop"
 
-# === НАСТРОЙКИ ===
-$vmName = "TestRunner"
-$vmPath = "D:\VMs"
-$vhdPath = "$vmPath\$vmName.vhdx"
-$windowsIso = "$vmPath\26200.6584.250915-1905.25h2_ge_release_svc_refresh_CLIENTENTERPRISEEVAL_OEMRET_x64FRE_en-us.iso"
-$unattendXml = "$vmPath\unattend\autounattend.xml"
+# === НАСТРОЙКИ (из конфига) ===
+$vmName = "@@vm.name@@"
+$windowsIso = "@@paths.windowsIso@@"
+$unattendXml = "@@paths.unattendXml@@"
+$diskSizeGb = @@vm.diskSizeGb@@
+# VHDX = директория ВМ из конфига + имя ВМ + .vhdx
+$vhdPath = Join-Path "@@paths.vmDir@@" "$vmName.vhdx"
 
 # === ПОИСК СВОБОДНЫХ БУКВ ===
 $usedLetters = @()
@@ -26,7 +28,7 @@ Write-Host "Using drive letters: EFI=$efiLetter, Windows=$winLetter"
 
 # === СОЗДАТЬ И РАЗМЕТИТЬ VHDX ===
 Write-Host "Creating VHDX..."
-New-VHD -Path $vhdPath -SizeBytes #insert from config GB -Dynamic
+New-VHD -Path $vhdPath -SizeBytes (${diskSizeGb}GB) -Dynamic
 Mount-VHD -Path $vhdPath
 $diskNumber = (Get-VHD -Path $vhdPath).DiskNumber
 Initialize-Disk -Number $diskNumber -PartitionStyle GPT
