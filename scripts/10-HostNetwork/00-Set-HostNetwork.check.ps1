@@ -1,20 +1,11 @@
-$ScriptTarget = "Host"
-# check для 00-Set-HostNetwork (HOST-side). Вся динамика считается ЗДЕСЬ и
-# уходит в state; основной скрипт берёт @@state.*@@. Трёхзначный код:
-#   exit 1 — нельзя (нет админ-прав / нет Hyper-V).
-#   exit 2 — свитч+NAT УЖЕ есть: берём ИХ реальные IP/prefix/ifIndex -> state,
-#            основной не нужен, степ зелёный.
-#   exit 0 — сети нет: выбрали свободный gateway IP + свободные порты -> state,
-#            основной создаёт.
-# В конфиге только имена-константы (switchName/natName/dnsServer/Ethernet).
+# find/verify host network -> state (exit 2 if already configured)
 
+$ScriptTarget = "Host"
 $ErrorActionPreference = "Stop"
 
 $switchName = "@@network.switchName@@"
 $natName    = "@@network.natName@@"
 
-# Желаемые значения — КОНСТАНТЫ скрипта (не конфиг): берём их, если свободны,
-# иначе ищем следующее свободное.
 $desiredPrefix    = 24
 $desiredProxyPort = 3128
 $desiredRdpPort   = 13389
@@ -24,19 +15,17 @@ $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIden
 if (-not $isAdmin) { Write-Host "Not running as Administrator."; exit 1 }
 if (-not (Get-Module -ListAvailable -Name Hyper-V)) { Write-Host "Hyper-V module not available."; exit 1 }
 
-# --- ПОРТЫ: желаемый, занят на хосте -> следующий по номеру ---
+# free ports (bump if taken)
 $listening = @((Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue).LocalPort)
 function Find-FreePort([int]$start) {
     $p = $start
     while ($listening -contains $p) { $p++ }
     return $p
 }
-$proxyPort = Find-FreePort $desiredProxyPort
-$rdpPort   = Find-FreePort $desiredRdpPort
-Write-Host "::set state.proxyPort=$proxyPort"
-Write-Host "::set state.rdpForwardPort=$rdpPort"
+Write-Host "::set state.proxyPort=$(Find-FreePort $desiredProxyPort)"
+Write-Host "::set state.rdpForwardPort=$(Find-FreePort $desiredRdpPort)"
 
-# --- NAT/СВИТЧ: есть -> берём его реальные IP/prefix/ifIndex ---
+# existing switch + nat -> take their real values
 $switch = Get-VMSwitch -Name $switchName -ErrorAction SilentlyContinue
 $nat    = Get-NetNat   -Name $natName    -ErrorAction SilentlyContinue
 $ip = Get-NetIPAddress -InterfaceAlias "vEthernet ($switchName)" -AddressFamily IPv4 -ErrorAction SilentlyContinue |
@@ -49,7 +38,7 @@ if ($switch -and $nat -and $ip) {
     exit 2
 }
 
-# --- НЕТ СЕТИ: выбираем свободный gateway IP (.1 в свободной подсети) ---
+# none -> pick free gateway ip (.1 in a free subnet)
 $gw = $null
 foreach ($third in 50..99) {
     $candidate = "192.168.$third.1"

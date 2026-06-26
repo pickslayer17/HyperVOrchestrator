@@ -1,15 +1,6 @@
-$ScriptTarget = "VM"
-# 02 - Положить FlaUI check-файл (Program.cs) в проект и собрать.
-#      Program.cs гоняет цикл: ищет окно Edge и максимизирует/восстанавливает,
-#      пишет лог. Это smoke-проверка UI Automation внутри ВМ.
-#
-# Перенесено из setup_dotnet/put_flaUI_check_file_to_vm.ps1.
-# $ScriptTarget = "VM" -> оркестратор заворачивает в Invoke-Command -VMName сам.
-#
-# !!! ВНИМАНИЕ: C#-код Program.cs содержит свой $"...{}" (это C#-интерполяция,
-# НЕ PowerShell). here-string ЛИТЕРАЛЬНЫЙ (@'...'@), поэтому C#-код не трогается.
-# Путь лога подставляется заменой токена __LOGPATH__ уже внутри гостя.
+# drop flaui Program.cs (edge maximize smoke loop) + build
 
+$ScriptTarget = "VM"
 $ErrorActionPreference = "Stop"
 
 $desktop     = "C:\Users\@@credentials.user@@\Desktop"
@@ -20,8 +11,7 @@ $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine")
 $projectDir = "$desktop\$projectName"
 $logPath = "$desktop\flaui_log.txt"
 
-# C#-код Program.cs. Литеральный here-string: PowerShell не трогает $"..." внутри.
-# __LOGPATH__ — наш токен, заменяется на реальный путь лога ниже.
+# literal here-string: PowerShell does not touch the C# $"..." inside
 $program = @'
 using System;
 using System.Threading;
@@ -71,9 +61,7 @@ for (int i = 0; i < 2000; i++)
 }
 '@
 
-# Подставить реальный путь лога.
 $program = $program.Replace("__LOGPATH__", $logPath)
-
 Set-Content -Path "$projectDir\Program.cs" -Value $program
 
 cd $projectDir

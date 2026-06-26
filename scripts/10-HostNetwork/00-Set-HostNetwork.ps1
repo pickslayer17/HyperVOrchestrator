@@ -1,27 +1,18 @@
-$ScriptTarget = "Host"
-# 00 - Host network: создать NATSwitch (internal), повесить IP хоста, создать NAT,
-#      подключить адаптер ВМ к свитчу.
-#
-# Перенесено из setup_network/setup_host_net.ps1.
-# Host-side. Значения подменяет оркестратор из конфига перед выполнением.
-#
-# ДИНАМИКА: ifIndex адаптера vEthernet (<switch>) вычисляется на лету и
-# записывается в state-файл (JSON) — позже используется другими шагами.
+# create nat switch + nat, connect vm
 
+$ScriptTarget = "Host"
 $ErrorActionPreference = "Stop"
 
-# === НАСТРОЙКИ (из конфига) ===
 $switchName = "@@network.switchName@@"
 $natName    = "@@network.natName@@"
 $hostIp     = "@@state.hostIp@@"
 $prefix     = @@state.prefix@@
 $vmName     = "@@vm.name@@"
 
-# Префикс подсети для NAT собираем из hostIp: x.y.z.0/prefix
 $octets = $hostIp.Split('.')
 $subnetPrefix = "$($octets[0]).$($octets[1]).$($octets[2]).0/$prefix"
 
-# === NAT SWITCH ===
+# switch
 $natSwitch = Get-VMSwitch -Name $switchName -ErrorAction SilentlyContinue
 if (-not $natSwitch) {
     Write-Host "Creating $switchName..."
@@ -34,7 +25,7 @@ if (-not $natSwitch) {
     $ifIndex = (Get-NetAdapter -Name "vEthernet ($switchName)").ifIndex
 }
 
-# === NAT ===
+# nat
 $nat = Get-NetNat -Name $natName -ErrorAction SilentlyContinue
 if (-not $nat) {
     New-NetNat -Name $natName -InternalIPInterfaceAddressPrefix $subnetPrefix
@@ -43,7 +34,7 @@ if (-not $nat) {
     Write-Host "$natName already exists."
 }
 
-# === CONNECT VM ===
+# connect vm
 $adapter = Get-VMNetworkAdapter -VMName $vmName -ErrorAction SilentlyContinue
 if ($adapter -and $adapter.SwitchName -ne $switchName) {
     Disconnect-VMNetworkAdapter -VMName $vmName -ErrorAction SilentlyContinue
@@ -56,10 +47,5 @@ if ($adapter -and $adapter.SwitchName -ne $switchName) {
     Write-Host "VM connected to $switchName."
 }
 
-# === СОХРАНИТЬ ДИНАМИКУ В STATE ===
-# Эмитим значение оркестратору: он положит его в карту интерполяции (следующий
-# шаг увидит @@state.hostSwitchIfIndex@@) и в artifacts/state.json. JSON руками
-# больше не пишем.
 Write-Host "::set state.hostSwitchIfIndex=$ifIndex"
-
 Write-Host "Host network ready."

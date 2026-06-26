@@ -1,19 +1,13 @@
-$ScriptTarget = "Host"
-# 02 - Создать ВМ из готового VHDX: Gen2, RAM/CPU из конфига, TPM.
-#
-# Перенесено из CreateVM_DISM.ps1 (секция 5).
-# Значения подменяет оркестратор из конфига перед выполнением.
+# create gen2 vm from vhdx, with tpm
 
+$ScriptTarget = "Host"
 $ErrorActionPreference = "Stop"
 
-# === НАСТРОЙКИ (из конфига) ===
 $vmName = "@@vm.name@@"
 $memoryGb = @@vm.memoryGb@@
 $cpuCount = @@vm.cpuCount@@
-# VHDX = директория ВМ из конфига + имя ВМ + .vhdx
 $vhdPath = Join-Path "@@paths.vmDir@@" "$vmName.vhdx"
 
-# === СОЗДАТЬ VM ===
 Write-Host "Creating VM..."
 New-VM -Name $vmName -MemoryStartupBytes $memoryGb -Generation 2 -VHDPath $vhdPath
 Set-VMMemory -VMName $vmName -DynamicMemoryEnabled $true -MinimumBytes 1GB -MaximumBytes $memoryGb

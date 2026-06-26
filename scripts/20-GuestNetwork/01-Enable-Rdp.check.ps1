@@ -1,3 +1,6 @@
+# vm reachable via psdirect
+
 $ScriptTarget = "VM"
-# check для 01-Enable-Rdp: ВМ доступна по PSDirect (успешный Invoke = доступна).
+$ErrorActionPreference = "Stop"
+
 Write-Host "VM reachable via PSDirect."

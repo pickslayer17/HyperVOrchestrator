@@ -1,10 +1,6 @@
-$ScriptTarget = "VM"
-# 01 - Создать FlaUI проект внутри ВМ: dotnet new console, сменить таргет на
-#      windows-framework, добавить пакет FlaUI, собрать.
-#
-# Перенесено из setup_dotnet/create_flaui_project.ps1.
-# $ScriptTarget = "VM" -> оркестратор заворачивает в Invoke-Command -VMName сам.
+# create flaui console project in guest, build
 
+$ScriptTarget = "VM"
 $ErrorActionPreference = "Stop"
 
 $desktop       = "C:\Users\@@credentials.user@@\Desktop"
@@ -20,7 +16,7 @@ if (Test-Path $projectDir) { Remove-Item $projectDir -Recurse -Force }
 mkdir $projectDir -Force
 cd $projectDir
 
-# Создать проект на базовом таргете, затем сменить на windows-вариант
+# create on base framework, retarget to windows
 dotnet new console --framework $baseFramework
 $csproj = "$projectDir\$projectName.csproj"
 (Get-Content $csproj) -replace [regex]::Escape($baseFramework), $framework | Set-Content $csproj

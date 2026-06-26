@@ -1,10 +1,7 @@
+# configure vm: dynamic memory, video, basic enhanced session
+
 $ScriptTarget = "Host"
-# 03 - Зафиксировать видео ВМ: разрешение из конфига, отключить Enhanced Session
-#      (всегда Basic Session). Нужно для стабильной работы FlaUI / UI Automation.
-#
-# Перенесено из before_setup/SETUP_HYPERV.ps1.
-# Применяется на ВЫКЛЮЧЕННОЙ ВМ — поэтому идёт до запуска (04-Start-Vm).
-# Значения подменяет оркестратор из конфига перед выполнением.
+$ErrorActionPreference = "Stop"
 
 $vmName = "@@vm.name@@"
 $videoWidth = @@vm.videoWidth@@

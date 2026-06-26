@@ -1,10 +1,6 @@
-$ScriptTarget = "VM"
-# 00 - Установить .NET SDK внутри ВМ через официальный dotnet-install скрипт,
-#      прописать в machine PATH.
-#
-# Перенесено из setup_dotnet/setup_dotnet.ps1.
-# $ScriptTarget = "VM" -> оркестратор заворачивает в Invoke-Command -VMName сам.
+# install .net sdk in guest, add to machine PATH
 
+$ScriptTarget = "VM"
 $ErrorActionPreference = "Stop"
 
 $desktop    = "C:\Users\@@credentials.user@@\Desktop"
@@ -13,21 +9,19 @@ $channel    = "@@dotnet.channel@@"
 $quality    = "@@dotnet.quality@@"
 $scriptUrl  = "@@dotnet.installScriptUrl@@"
 
-# === 1. Скачать dotnet-install скрипт ===
+# download installer
 $installScript = "$desktop\dotnet-install.ps1"
 Invoke-WebRequest -Uri $scriptUrl -OutFile $installScript
 
-# === 2. Установить .NET SDK ===
+# install sdk
 powershell -ExecutionPolicy Bypass -File $installScript -Channel $channel -Quality $quality -InstallDir $installDir
 
-# === 3. Прописать PATH ===
+# machine PATH
 $machinePath = [System.Environment]::GetEnvironmentVariable("PATH", "Machine")
 if ($machinePath -notlike "*dotnet*") {
     [System.Environment]::SetEnvironmentVariable("PATH", "$machinePath;$installDir", "Machine")
 }
 $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine")
 
-# === 4. Проверить ===
 & "$installDir\dotnet.exe" --version
-
 Write-Host "dotnet SDK installed."

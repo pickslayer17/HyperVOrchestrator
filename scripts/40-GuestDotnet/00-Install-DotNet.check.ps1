@@ -1,3 +1,6 @@
+# vm reachable via psdirect
+
 $ScriptTarget = "VM"
-# check для 00-Install-DotNet: ВМ доступна по PSDirect (успешный Invoke = доступна).
+$ErrorActionPreference = "Stop"
+
 Write-Host "VM reachable via PSDirect."

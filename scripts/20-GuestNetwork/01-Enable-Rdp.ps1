@@ -1,9 +1,6 @@
-$ScriptTarget = "VM"
-# 01 - Включить RDP в госте: разрешить подключения, отключить NLA, открыть firewall.
-#
-# Перенесено из setup_network/setup_RDP.ps1.
-# $ScriptTarget = "VM" -> оркестратор заворачивает в Invoke-Command -VMName сам.
+# enable rdp in guest
 
+$ScriptTarget = "VM"
 $ErrorActionPreference = "Stop"
 
 Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server" -Name fDenyTSConnections -Value 0

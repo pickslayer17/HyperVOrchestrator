@@ -1,18 +1,11 @@
-$ScriptTarget = "Host"
-# 04 - Запустить ВМ и открыть окно vmconnect.
-#      Окно нужно, чтобы видеть установку Windows (specialize + OOBE) глазами.
-#
-# Перенесено из CreateVM_DISM.ps1 (секция 6).
-# Значения подменяет оркестратор из конфига перед выполнением.
+# start vm + open vmconnect
 
+$ScriptTarget = "Host"
 $ErrorActionPreference = "Stop"
 
 $vmName = "@@vm.name@@"
 
 Write-Host "Starting VM..."
 Start-VM -VMName $vmName
-# Start-Process, а НЕ "vmconnect ..." напрямую: иначе vmconnect наследует наши
-# перенаправленные stdout/stderr и держит консоль до закрытия окна. Детачим —
-# окно открывается, а шаг сразу возвращается в меню.
-Start-Process vmconnect -ArgumentList 'localhost', $vmName
+vmconnect localhost $vmName
 Write-Host "Done. Windows should boot directly into setup (specialize + OOBE)."

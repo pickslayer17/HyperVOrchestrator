@@ -1,9 +1,6 @@
-$ScriptTarget = "VM"
-# 00 - Дать пользователю full access на C:\ внутри ВМ.
-#
-# Перенесено из setup_access/user_full_access.ps1.
-# $ScriptTarget = "VM" -> оркестратор заворачивает в Invoke-Command -VMName сам.
+# grant user full access to C:
 
+$ScriptTarget = "VM"
 $ErrorActionPreference = "Stop"
 
 $vmUser = "@@credentials.user@@"

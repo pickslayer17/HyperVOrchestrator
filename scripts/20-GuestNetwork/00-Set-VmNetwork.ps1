@@ -1,14 +1,8 @@
-$ScriptTarget = "VM"
-# 00 - Guest network: статический IP, DNS, прокси на всех уровнях (winhttp,
-#      machine reg, env vars, HKCU пользователя), проверка интернета.
-#
-# Перенесено из setup_network/setup_vm_net.ps1.
-# $ScriptTarget = "VM" -> оркестратор сам заворачивает этот файл в Invoke-Command -VMName
-# с кредами из конфига. Тело пишем как «что сделать ВНУТРИ ВМ».
+# guest network: static ip, dns, proxy (all levels), verify
 
+$ScriptTarget = "VM"
 $ErrorActionPreference = "Stop"
 
-# === НАСТРОЙКИ (из конфига) ===
 $vmIp          = "@@state.vmIp@@"
 $prefix        = @@state.prefix@@
 $gateway       = "@@state.hostIp@@"
@@ -17,7 +11,7 @@ $proxyHostPort = "@@state.hostIp@@:@@state.proxyPort@@"
 $vmUser        = "@@credentials.user@@"
 $ifAlias       = "@@network.guestInterfaceAlias@@"
 
-# === STATIC IP ===
+# static ip
 $existing = Get-NetIPAddress -InterfaceAlias $ifAlias -AddressFamily IPv4 -ErrorAction SilentlyContinue
 if ($existing | Where-Object { $_.IPAddress -eq $vmIp }) {
     Write-Host "IP $vmIp already set."
@@ -30,23 +24,23 @@ if ($existing | Where-Object { $_.IPAddress -eq $vmIp }) {
     Write-Host "IP set: $vmIp"
 }
 
-# === DNS ===
+# dns
 Set-DnsClientServerAddress -InterfaceAlias $ifAlias -ServerAddresses $dns
 Write-Host "DNS set: $dns"
 
-# === PROXY: SYSTEM (winhttp) ===
+# proxy: system (winhttp)
 netsh winhttp set proxy "$proxyHostPort"
 
-# === PROXY: MACHINE LEVEL (services, SYSTEM account) ===
+# proxy: machine
 $regPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings"
 Set-ItemProperty -Path $regPath -Name ProxyEnable -Value 1
 Set-ItemProperty -Path $regPath -Name ProxyServer -Value "$proxyHostPort"
 
-# === PROXY: ENV VARS (git, npm, pip, curl.exe) ===
+# proxy: env vars
 [System.Environment]::SetEnvironmentVariable("HTTP_PROXY", "http://$proxyHostPort", "Machine")
 [System.Environment]::SetEnvironmentVariable("HTTPS_PROXY", "http://$proxyHostPort", "Machine")
 
-# === PROXY: USER HKCU ===
+# proxy: user hkcu
 $sid = (New-Object System.Security.Principal.NTAccount($vmUser)).Translate([System.Security.Principal.SecurityIdentifier]).Value
 reg load "HKU\$sid" "C:\Users\$vmUser\NTUSER.DAT" 2>$null
 reg add "HKU\$sid\SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings" /v ProxyEnable /t REG_DWORD /d 1 /f
@@ -55,7 +49,7 @@ reg unload "HKU\$sid" 2>$null
 
 Write-Host "All proxy settings configured."
 
-# === VERIFY ===
+# verify
 Write-Host "Testing connectivity..."
 $result = curl https://google.com -UseBasicParsing -TimeoutSec 10 -Proxy "http://$proxyHostPort" -ErrorAction SilentlyContinue
 if ($result.StatusCode -eq 200) {
