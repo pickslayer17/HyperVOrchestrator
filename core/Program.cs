@@ -17,6 +17,10 @@ internal static class Program
         foreach (var kv in state.Values)
             values[kv.Key] = kv.Value;
 
+        // Рендер unattend: шаблон с @@@@ -> рабочий xml тем же интерполятором.
+        // Подстановку делает движок, а не скрипт; build-скрипт копирует готовый файл.
+        RenderUnattend(config, values);
+
         var runner = new ScriptRunner(values);
         var status = new SessionStatus();
 
@@ -128,6 +132,20 @@ internal static class Program
             Ui.Line($"  state: {key} = {value}", ConsoleColor.DarkGray);
 
         return result;
+    }
+
+    // Читает шаблон unattend, интерполирует @@@@ значениями из конфига и пишет
+    // рабочий xml в paths.unattendXml. Нет шаблона/выхода — тихо пропускаем.
+    private static void RenderUnattend(AppConfig config, IReadOnlyDictionary<string, string> values)
+    {
+        var template = config.Paths.UnattendTemplate;
+        var output = config.Paths.UnattendXml;
+        if (string.IsNullOrEmpty(template) || string.IsNullOrEmpty(output) || !File.Exists(template))
+            return;
+
+        var rendered = ConfigInterpolator.Interpolate(File.ReadAllText(template), values);
+        Directory.CreateDirectory(Path.GetDirectoryName(output)!);
+        File.WriteAllText(output, rendered);
     }
 
     // Корень репо = ближайшая вверх папка, содержащая scripts/. Не зависит от

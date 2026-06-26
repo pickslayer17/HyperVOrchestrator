@@ -38,6 +38,7 @@ internal sealed class VmConfig
     public string DiskSizeGb { get; init; } = ""; // "40GB" — PowerShell-литерал размера
     public int VideoWidth { get; init; }
     public int VideoHeight { get; init; }
+    public string TimeZone { get; init; } = "";  // Windows-ID (напр. "FLE Standard Time")
 }
 
 internal sealed class CredentialsConfig
@@ -65,7 +66,8 @@ internal sealed class PathsConfig
     // VmDir + vm.name + ".vhdx". В резолве не участвует — уже абсолютный.
     public string VmDir { get; set; } = "";
     public string WindowsIso { get; set; } = "";
-    public string UnattendXml { get; set; } = "";
+    public string UnattendTemplate { get; set; } = ""; // шаблон с @@@@ (в git)
+    public string UnattendXml { get; set; } = "";      // рендер шаблона (генерится)
     public string OfficeArchive { get; set; } = "";
 
     // Файл состояния (динамика, вычисленная на лету) — относительный от корня репо.
@@ -79,6 +81,7 @@ internal sealed class PathsConfig
     public void ResolveAgainst(string repoRoot)
     {
         WindowsIso = Resolve(repoRoot, WindowsIso);
+        UnattendTemplate = Resolve(repoRoot, UnattendTemplate);
         UnattendXml = Resolve(repoRoot, UnattendXml);
         OfficeArchive = Resolve(repoRoot, OfficeArchive);
         StateFile = Resolve(repoRoot, StateFile);

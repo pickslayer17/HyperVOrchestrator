@@ -5,7 +5,8 @@
     "cpuCount": 4,
     "diskSizeGb": "40GB",
     "videoWidth": 1920,
-    "videoHeight": 1080
+    "videoHeight": 1080,
+    "timeZone": "FLE Standard Time"
   },
   "credentials": {
     "user": "",
@@ -25,6 +26,7 @@
   "paths": {
     "vmDir": "",
     "windowsIso": "",
+    "unattendTemplate": "templates/autounattend.template.xml",
     "unattendXml": "",
     "officeArchive": "",
     "stateFile": "artifacts/state.json",
