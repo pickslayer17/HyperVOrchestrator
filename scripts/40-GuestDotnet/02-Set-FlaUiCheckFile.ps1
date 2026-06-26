@@ -1,10 +1,10 @@
-#:target vm
+$ScriptTarget = "VM"
 # 02 - Положить FlaUI check-файл (Program.cs) в проект и собрать.
 #      Program.cs гоняет цикл: ищет окно Edge и максимизирует/восстанавливает,
 #      пишет лог. Это smoke-проверка UI Automation внутри ВМ.
 #
 # Перенесено из setup_dotnet/put_flaUI_check_file_to_vm.ps1.
-# #:target vm -> оркестратор заворачивает в Invoke-Command -VMName сам.
+# $ScriptTarget = "VM" -> оркестратор заворачивает в Invoke-Command -VMName сам.
 #
 # !!! ВНИМАНИЕ: C#-код Program.cs содержит свой $"...{}" (это C#-интерполяция,
 # НЕ PowerShell). here-string ЛИТЕРАЛЬНЫЙ (@'...'@), поэтому C#-код не трогается.

@@ -85,7 +85,7 @@ internal sealed class ScriptRunner
     private string Require(string key) =>
         _values.TryGetValue(key, out var v) && !string.IsNullOrEmpty(v)
             ? v
-            : throw new InvalidOperationException($"#:target vm requires config value '{key}' to be set.");
+            : throw new InvalidOperationException($"$ScriptTarget = \"VM\" requires config value '{key}' to be set.");
 
     private static string Lit(string s) => s.Replace("'", "''");
 

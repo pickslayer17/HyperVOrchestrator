@@ -1,3 +1,4 @@
+$ScriptTarget = "Host"
 # 00 - Host network: создать NATSwitch (internal), повесить IP хоста, создать NAT,
 #      подключить адаптер ВМ к свитчу.
 #

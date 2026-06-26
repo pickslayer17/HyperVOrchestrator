@@ -1,3 +1,4 @@
+$ScriptTarget = "Host"
 # 02 - Создать ВМ из готового VHDX: Gen2, RAM/CPU из конфига, TPM.
 #
 # Перенесено из CreateVM_DISM.ps1 (секция 5).

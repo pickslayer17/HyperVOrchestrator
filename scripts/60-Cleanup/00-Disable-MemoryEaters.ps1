@@ -1,10 +1,10 @@
-#:target vm
+$ScriptTarget = "VM"
 # 00 - Отключить «пожирателей» ресурсов внутри ВМ: Windows Update, WSearch,
 #      SysMain, DiagTrack, system restore, hibernate, scheduled defrag, DoSvc.
 #      Выдать пользователю full access на C:\ и перезагрузить.
 #
 # Перенесено из after_setup/tunr_off_memory_eaters.ps1.
-# #:target vm -> оркестратор заворачивает в Invoke-Command -VMName сам.
+# $ScriptTarget = "VM" -> оркестратор заворачивает в Invoke-Command -VMName сам.
 #
 # !!! ВНИМАНИЕ: в конце делает Restart-Computer -Force. После этого шага ВМ
 # перезагрузится — последующие VM-side шаги должны ждать.

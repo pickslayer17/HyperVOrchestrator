@@ -1,9 +1,9 @@
-#:target vm
+$ScriptTarget = "VM"
 # 00 - Установить .NET SDK внутри ВМ через официальный dotnet-install скрипт,
 #      прописать в machine PATH.
 #
 # Перенесено из setup_dotnet/setup_dotnet.ps1.
-# #:target vm -> оркестратор заворачивает в Invoke-Command -VMName сам.
+# $ScriptTarget = "VM" -> оркестратор заворачивает в Invoke-Command -VMName сам.
 
 $ErrorActionPreference = "Stop"
 

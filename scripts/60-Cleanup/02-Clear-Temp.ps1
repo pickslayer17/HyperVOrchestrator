@@ -1,9 +1,9 @@
-#:target vm
+$ScriptTarget = "VM"
 # 02 - Очистить временные файлы внутри ВМ: SoftwareDistribution\Download,
 #      Windows\Temp, LocalAppData\Temp, Prefetch. Плюс DISM component cleanup.
 #
 # Перенесено из after_setup/clean_temp.ps1.
-# #:target vm -> оркестратор заворачивает в Invoke-Command -VMName сам.
+# $ScriptTarget = "VM" -> оркестратор заворачивает в Invoke-Command -VMName сам.
 
 $ErrorActionPreference = "Stop"
 

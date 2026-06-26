@@ -1,4 +1,4 @@
-#:target vm
+$ScriptTarget = "VM"
 # check для 01-New-FlaUiProject: в ВМ должен быть установлен dotnet (его ставит 00).
 # throw -> оркестратор пометит check провалившимся и не запустит основной шаг.
 $installDir = "@@paths.dotnetInstallDir@@"

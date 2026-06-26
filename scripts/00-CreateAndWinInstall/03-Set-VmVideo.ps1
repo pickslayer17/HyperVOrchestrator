@@ -1,3 +1,4 @@
+$ScriptTarget = "Host"
 # 03 - Зафиксировать видео ВМ: разрешение из конфига, отключить Enhanced Session
 #      (всегда Basic Session). Нужно для стабильной работы FlaUI / UI Automation.
 #

@@ -1,3 +1,4 @@
+$ScriptTarget = "Host"
 # 01 - Создать и подготовить загрузочный VHDX (атомарная операция).
 #      Разметка GPT (EFI/MSR/Windows) -> DISM apply-image -> bcdboot -> unattend.xml.
 #      Всё в одном try/finally: при ошибке маунты/буквы откатываются в finally.

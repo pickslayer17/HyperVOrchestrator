@@ -1,3 +1,4 @@
+$ScriptTarget = "Host"
 # check для 00-Install-Office: архив office.zip есть на хосте, ВМ запущена и доступна.
 # exit 0 = можно запускать основной скрипт.
 

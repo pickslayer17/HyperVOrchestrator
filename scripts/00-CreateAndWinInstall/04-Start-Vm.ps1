@@ -1,3 +1,4 @@
+$ScriptTarget = "Host"
 # 04 - Запустить ВМ и открыть окно vmconnect.
 #      Окно нужно, чтобы видеть установку Windows (specialize + OOBE) глазами.
 #

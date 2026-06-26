@@ -1,8 +1,8 @@
-#:target vm
+$ScriptTarget = "VM"
 # 01 - Включить RDP в госте: разрешить подключения, отключить NLA, открыть firewall.
 #
 # Перенесено из setup_network/setup_RDP.ps1.
-# #:target vm -> оркестратор заворачивает в Invoke-Command -VMName сам.
+# $ScriptTarget = "VM" -> оркестратор заворачивает в Invoke-Command -VMName сам.
 
 $ErrorActionPreference = "Stop"
 

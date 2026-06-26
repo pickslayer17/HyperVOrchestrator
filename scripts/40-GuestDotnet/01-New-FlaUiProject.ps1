@@ -1,9 +1,9 @@
-#:target vm
+$ScriptTarget = "VM"
 # 01 - Создать FlaUI проект внутри ВМ: dotnet new console, сменить таргет на
 #      windows-framework, добавить пакет FlaUI, собрать.
 #
 # Перенесено из setup_dotnet/create_flaui_project.ps1.
-# #:target vm -> оркестратор заворачивает в Invoke-Command -VMName сам.
+# $ScriptTarget = "VM" -> оркестратор заворачивает в Invoke-Command -VMName сам.
 
 $ErrorActionPreference = "Stop"
 

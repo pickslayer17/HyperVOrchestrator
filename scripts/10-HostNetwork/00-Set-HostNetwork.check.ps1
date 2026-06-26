@@ -1,3 +1,4 @@
+$ScriptTarget = "Host"
 # check для 00-Set-HostNetwork: нужны админ-права и Hyper-V модуль.
 # exit 0 = можно запускать основной скрипт.
 

@@ -1,9 +1,9 @@
-#:target vm
+$ScriptTarget = "VM"
 # 00 - Guest network: статический IP, DNS, прокси на всех уровнях (winhttp,
 #      machine reg, env vars, HKCU пользователя), проверка интернета.
 #
 # Перенесено из setup_network/setup_vm_net.ps1.
-# #:target vm -> оркестратор сам заворачивает этот файл в Invoke-Command -VMName
+# $ScriptTarget = "VM" -> оркестратор сам заворачивает этот файл в Invoke-Command -VMName
 # с кредами из конфига. Тело пишем как «что сделать ВНУТРИ ВМ».
 
 $ErrorActionPreference = "Stop"

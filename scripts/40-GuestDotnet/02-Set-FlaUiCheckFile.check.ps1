@@ -1,4 +1,4 @@
-#:target vm
+$ScriptTarget = "VM"
 # check для 02-Set-FlaUiCheckFile: в ВМ должен быть создан FlaUI-проект (его делает 01).
 # throw -> оркестратор пометит check провалившимся и не запустит основной шаг.
 $desktop     = "C:\Users\@@credentials.user@@\Desktop"

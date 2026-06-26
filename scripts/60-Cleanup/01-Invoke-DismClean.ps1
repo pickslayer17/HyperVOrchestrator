@@ -1,9 +1,9 @@
-#:target vm
+$ScriptTarget = "VM"
 # 01 - DISM cleanup внутри ВМ: компонентная очистка с ResetBase,
 #      удаление Windows Defender и Internet Explorer.
 #
 # Перенесено из after_setup/dism_clean.ps1.
-# #:target vm -> оркестратор заворачивает в Invoke-Command -VMName сам.
+# $ScriptTarget = "VM" -> оркестратор заворачивает в Invoke-Command -VMName сам.
 
 $ErrorActionPreference = "Stop"
 
