@@ -32,45 +32,31 @@ internal static class Program
             runner.Cancel();
         };
 
-        while (true)
+        // Сьюты = шаги, сгруппированные по папке, в порядке каталога (00-, 10-...).
+        var suites = ScriptCatalog.Scan(scriptsDir)
+            .GroupBy(s => s.Group)
+            .Select(g => (g.Key, (IReadOnlyList<ScriptStep>)g.ToList()))
+            .ToList();
+
+        new Menu(suites, status, RunStepTracked).Run();
+        return 0;
+
+        // Выполнить один шаг + отметить статус. Падения уже ловятся внутри; здесь
+        // ещё страховка от исключений. Возвращает успех (для стопа сьюта/RUN ALL).
+        bool RunStepTracked(ScriptStep step)
         {
-            var steps = ScriptCatalog.Scan(scriptsDir);
-            Ui.Menu(steps, status);
-
-            var input = Ui.Prompt("Choose step: ");
-            if (string.IsNullOrEmpty(input))
-                continue;
-            if (input is "q" or "Q" or "0")
+            bool ok;
+            try
             {
-                Ui.Plain("Bye.");
-                return 0;
+                ok = RunStep(step, runner, state, values);
             }
-
-            if (int.TryParse(input, out var choice) && choice >= 1 && choice <= steps.Count)
+            catch (Exception ex)
             {
-                var step = steps[choice - 1];
-                // Железобетон: любая ошибка в шаге -> красным в консоль и назад
-                // в меню. Оркестратор не падает ни при какой «хуйне».
-                try
-                {
-                    if (RunStep(step, runner, state, values))
-                        status.MarkOk(step.Id);
-                    else
-                        status.MarkFailed(step.Id);
-                }
-                catch (Exception ex)
-                {
-                    Ui.Line($"[X] step crashed: {ex.Message}", ConsoleColor.Red);
-                    status.MarkFailed(step.Id);
-                }
+                Ui.Line($"[X] step crashed: {ex.Message}", ConsoleColor.Red);
+                ok = false;
             }
-            else
-            {
-                Ui.Line($"Unknown choice: {input}", ConsoleColor.Red);
-            }
-
-            Ui.Blank();
-            Ui.Prompt("Press Enter to return to menu...");
+            if (ok) status.MarkOk(step.Id); else status.MarkFailed(step.Id);
+            return ok;
         }
     }
 
