@@ -28,6 +28,8 @@ $winLetter = [string]$freeLetters[1]
 Write-Host "Using drive letters: EFI=$efiLetter, Windows=$winLetter"
 
 # === СОЗДАТЬ И РАЗМЕТИТЬ VHDX ===
+# New-VHD требует существующий родительский каталог — создаём, если нет.
+New-Item -ItemType Directory -Force -Path (Split-Path -Parent $vhdPath) | Out-Null
 Write-Host "Creating VHDX..."
 New-VHD -Path $vhdPath -SizeBytes (${diskSizeGb}GB) -Dynamic
 Mount-VHD -Path $vhdPath

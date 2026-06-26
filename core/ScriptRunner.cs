@@ -3,32 +3,38 @@ using System.Text;
 
 namespace Orchestrator;
 
-// Результат выполнения одного .ps1.
+// Результат выполнения одного .ps1. Вывод печатается ЖИВЬЁМ во время работы
+// (через колбэки), поэтому текста stdout/stderr здесь нет — только исход.
 internal sealed record RunResult
 {
     public required bool Found { get; init; }     // файл найден и запущен
     public required int ExitCode { get; init; }
-    public string Stdout { get; init; } = "";     // уже без ::set-строк
-    public string Stderr { get; init; } = "";
     public string? Error { get; init; }            // ошибка ДО запуска (нет файла / битый плейсхолдер)
     public IReadOnlyList<(string Key, string Value)> Sets { get; init; } = [];
 }
 
 // Слой ВЫПОЛНЕНИЯ. Берёт путь к .ps1, интерполирует @@config@@, решает по
-// директиве #:target где исполнять, при необходимости заворачивает тело в
+// переменной $ScriptTarget где исполнять, при необходимости заворачивает тело в
 // Invoke-Command (PSDirect + креды из конфига), гонит через powershell.exe.
 //
-// Чистая механика: ничего не печатает сам — возвращает RunResult, печатает
-// вызывающий (Program/Ui). Так вывод отделён от выполнения.
+// Вывод стримится ПОСТРОЧНО по мере поступления (onStdout/onStderr) — длинный
+// шаг (DISM и т.п.) виден сразу, а не после завершения. Печатает вызывающий
+// (через колбэки), runner Console не трогает.
+//
+// Текущий процесс хранится в _current, чтобы Cancel() (Ctrl+C из Program) мог
+// убить его вместе с дочерними (dism/bcdboot) и вернуть управление в меню.
 internal sealed class ScriptRunner
 {
     // Живая карта значений. Та же ссылка, что у Program: по мере накопления
     // ::set интерполяция видит новые значения.
     private readonly IReadOnlyDictionary<string, string> _values;
 
+    private readonly object _gate = new();
+    private Process? _current;
+
     public ScriptRunner(IReadOnlyDictionary<string, string> values) => _values = values;
 
-    public RunResult Run(string scriptPath)
+    public RunResult Run(string scriptPath, Action<string> onStdout, Action<string> onStderr)
     {
         if (!File.Exists(scriptPath))
             return new RunResult { Found = false, ExitCode = -1, Error = $"script not found: {scriptPath}" };
@@ -46,31 +52,91 @@ internal sealed class ScriptRunner
         var target = ScriptDirectives.ParseTarget(interpolated);
         var finalText = target == ScriptTarget.Vm ? WrapForVm(interpolated) : interpolated;
 
-        var (rawStdout, stderr, exit) = RunPowerShell(finalText);
-        var (cleanStdout, sets) = StateStore.ExtractSets(rawStdout);
+        var (exit, sets) = RunPowerShell(finalText, onStdout, onStderr);
+        return new RunResult { Found = true, ExitCode = exit, Sets = sets };
+    }
 
-        return new RunResult
+    // Убить текущий процесс вместе с деревом (dism, bcdboot, vmconnect...).
+    // Зовётся из обработчика Ctrl+C. Безопасно, если ничего не запущено.
+    public void Cancel()
+    {
+        lock (_gate)
         {
-            Found = true,
-            ExitCode = exit,
-            Stdout = cleanStdout,
-            Stderr = stderr,
-            Sets = sets,
+            try { _current?.Kill(entireProcessTree: true); }
+            catch { /* уже завершился — ок */ }
+        }
+    }
+
+    // Готовый текст -> powershell.exe через stdin (-Command -). Читаем оба потока
+    // АСИНХРОННО (события), чтобы: (1) видеть вывод сразу; (2) не словить дедлок,
+    // когда один буфер заполняется, пока мы ждём другой.
+    private (int exit, IReadOnlyList<(string, string)> sets) RunPowerShell(
+        string scriptText, Action<string> onStdout, Action<string> onStderr)
+    {
+        var psi = new ProcessStartInfo
+        {
+            FileName = "powershell.exe",
+            RedirectStandardInput = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
         };
+        psi.ArgumentList.Add("-NoProfile");
+        psi.ArgumentList.Add("-ExecutionPolicy");
+        psi.ArgumentList.Add("Bypass");
+        psi.ArgumentList.Add("-Command");
+        psi.ArgumentList.Add("-");
+
+        var sets = new List<(string, string)>();
+        var proc = new Process { StartInfo = psi };
+
+        // ::set-строки в вывод не печатаем — собираем в sets. lock сериализует
+        // печать stdout/stderr (события приходят из разных потоков) и защищает sets.
+        proc.OutputDataReceived += (_, e) =>
+        {
+            if (e.Data is null) return;
+            lock (_gate)
+            {
+                var hit = StateStore.MatchSet(e.Data);
+                if (hit is not null) sets.Add(hit.Value);
+                else onStdout(e.Data);
+            }
+        };
+        proc.ErrorDataReceived += (_, e) =>
+        {
+            if (e.Data is null) return;
+            lock (_gate) onStderr(e.Data);
+        };
+
+        try
+        {
+            proc.Start();
+            lock (_gate) _current = proc;
+
+            proc.BeginOutputReadLine();
+            proc.BeginErrorReadLine();
+            proc.StandardInput.Write(scriptText);
+            proc.StandardInput.Close();
+
+            proc.WaitForExit(); // без таймаута: дожидается и выхода, и слива буферов
+            return (proc.ExitCode, sets);
+        }
+        finally
+        {
+            lock (_gate) _current = null;
+            proc.Dispose();
+        }
     }
 
     // Завернуть тело в Invoke-Command -VMName с кредами из конфига.
-    // Значения уже впечатаны интерполяцией, -ArgumentList не нужен —
-    // тело self-contained. Кавычки в кредах экранируем удвоением (PS-литерал).
+    // Недоступность ВМ или throw внутри тела -> терминирующая ошибка -> catch ->
+    // exit 1. Поэтому VM-скриптам не нужно самим строить креды и проверять доступность.
     private string WrapForVm(string body)
     {
         var vm = Require("vm.name");
         var user = Require("credentials.user");
         var pass = Require("credentials.password");
 
-        // Недоступность ВМ или throw внутри тела -> терминирующая ошибка ->
-        // catch -> exit 1. Поэтому VM-скриптам (и check, и основным) не нужно
-        // самим строить креды и проверять доступность: ошибка = чистый провал.
         var sb = new StringBuilder();
         sb.AppendLine("$ErrorActionPreference = 'Stop'");
         sb.AppendLine($"$__cred = New-Object System.Management.Automation.PSCredential('{Lit(user)}', (ConvertTo-SecureString '{Lit(pass)}' -AsPlainText -Force))");
@@ -88,32 +154,4 @@ internal sealed class ScriptRunner
             : throw new InvalidOperationException($"$ScriptTarget = \"VM\" requires config value '{key}' to be set.");
 
     private static string Lit(string s) => s.Replace("'", "''");
-
-    // Готовый текст -> powershell.exe через stdin (-Command -), без временных файлов.
-    private static (string stdout, string stderr, int exit) RunPowerShell(string scriptText)
-    {
-        var psi = new ProcessStartInfo
-        {
-            FileName = "powershell.exe",
-            RedirectStandardInput = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-        };
-        psi.ArgumentList.Add("-NoProfile");
-        psi.ArgumentList.Add("-ExecutionPolicy");
-        psi.ArgumentList.Add("Bypass");
-        psi.ArgumentList.Add("-Command");
-        psi.ArgumentList.Add("-");
-
-        using var proc = Process.Start(psi)!;
-        proc.StandardInput.Write(scriptText);
-        proc.StandardInput.Close();
-
-        var stdout = proc.StandardOutput.ReadToEnd();
-        var stderr = proc.StandardError.ReadToEnd();
-        proc.WaitForExit();
-
-        return (stdout, stderr, proc.ExitCode);
-    }
 }

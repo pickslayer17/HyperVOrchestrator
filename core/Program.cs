@@ -20,6 +20,14 @@ internal static class Program
         var runner = new ScriptRunner(values);
         var status = new SessionStatus();
 
+        // Ctrl+C прерывает ТЕКУЩИЙ шаг (убивает процесс + дерево) и возвращает в
+        // меню, а не закрывает оркестратор. Выход — только через 'q'.
+        Console.CancelKeyPress += (_, e) =>
+        {
+            e.Cancel = true;
+            runner.Cancel();
+        };
+
         while (true)
         {
             var steps = ScriptCatalog.Scan(scriptsDir);
@@ -37,10 +45,20 @@ internal static class Program
             if (int.TryParse(input, out var choice) && choice >= 1 && choice <= steps.Count)
             {
                 var step = steps[choice - 1];
-                if (RunStep(step, runner, state, values))
-                    status.MarkOk(step.Id);
-                else
+                // Железобетон: любая ошибка в шаге -> красным в консоль и назад
+                // в меню. Оркестратор не падает ни при какой «хуйне».
+                try
+                {
+                    if (RunStep(step, runner, state, values))
+                        status.MarkOk(step.Id);
+                    else
+                        status.MarkFailed(step.Id);
+                }
+                catch (Exception ex)
+                {
+                    Ui.Line($"[X] step crashed: {ex.Message}", ConsoleColor.Red);
                     status.MarkFailed(step.Id);
+                }
             }
             else
             {
@@ -92,7 +110,12 @@ internal static class Program
         Ui.Blank();
         Ui.Line($"--- {Path.GetFileName(scriptPath)} ---", ConsoleColor.DarkGray);
 
-        var result = runner.Run(scriptPath);
+        // Вывод стримится сюда построчно во время работы скрипта: stdout как есть,
+        // stderr — красным. Так длинный шаг (DISM) виден сразу, а не в конце.
+        var result = runner.Run(
+            scriptPath,
+            onStdout: line => Ui.Plain(line),
+            onStderr: line => Ui.Line(line, ConsoleColor.Red));
 
         if (result.Error is not null)
         {
@@ -101,11 +124,6 @@ internal static class Program
         }
 
         state.Apply(result.Sets, values);
-
-        if (!string.IsNullOrWhiteSpace(result.Stdout))
-            Ui.Raw(result.Stdout.EndsWith('\n') ? result.Stdout : result.Stdout + "\n");
-        if (!string.IsNullOrWhiteSpace(result.Stderr))
-            Ui.Line(result.Stderr.TrimEnd(), ConsoleColor.Red);
         foreach (var (key, value) in result.Sets)
             Ui.Line($"  state: {key} = {value}", ConsoleColor.DarkGray);
 

@@ -47,23 +47,12 @@ internal sealed partial class StateStore
         Save();
     }
 
-    // Достать ::set-пары из stdout и вернуть текст БЕЗ маркер-строк (для показа).
-    public static (string CleanText, IReadOnlyList<(string Key, string Value)> Sets) ExtractSets(string stdout)
+    // Проверить ОДНУ строку вывода: ::set-маркер -> пара (key, value), иначе null.
+    // Раннер зовёт это построчно по мере поступления вывода из powershell.
+    public static (string Key, string Value)? MatchSet(string line)
     {
-        if (string.IsNullOrEmpty(stdout))
-            return (stdout, []);
-
-        var sets = new List<(string, string)>();
-        var kept = new List<string>();
-        foreach (var line in stdout.Split('\n'))
-        {
-            var m = SetMarker().Match(line.TrimEnd('\r'));
-            if (m.Success)
-                sets.Add((m.Groups[1].Value, m.Groups[2].Value));
-            else
-                kept.Add(line);
-        }
-        return (string.Join('\n', kept), sets);
+        var m = SetMarker().Match(line);
+        return m.Success ? (m.Groups[1].Value, m.Groups[2].Value) : null;
     }
 
     private Dictionary<string, string> LoadFile()
