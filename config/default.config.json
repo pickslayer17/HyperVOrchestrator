@@ -1,9 +1,9 @@
 {
   "vm": {
     "name": "TestRunner2",
-    "memoryGb": 4,
+    "memoryGb": "4GB",
     "cpuCount": 4,
-    "diskSizeGb": 40,
+    "diskSizeGb": "40GB",
     "videoWidth": 1920,
     "videoHeight": 1080
   },

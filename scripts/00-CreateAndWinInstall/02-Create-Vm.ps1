@@ -15,7 +15,7 @@ $vhdPath = Join-Path "@@paths.vmDir@@" "$vmName.vhdx"
 
 # === СОЗДАТЬ VM ===
 Write-Host "Creating VM..."
-New-VM -Name $vmName -MemoryStartupBytes (${memoryGb}GB) -Generation 2 -VHDPath $vhdPath
+New-VM -Name $vmName -MemoryStartupBytes $memoryGb -Generation 2 -VHDPath $vhdPath
 Set-VMProcessor -VMName $vmName -Count $cpuCount
 Set-VMKeyProtector -VMName $vmName -NewLocalKeyProtector
 Enable-VMTPM -VMName $vmName

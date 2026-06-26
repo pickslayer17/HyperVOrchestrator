@@ -33,9 +33,9 @@ internal sealed class AppConfig
 internal sealed class VmConfig
 {
     public string Name { get; init; } = "";
-    public int MemoryGb { get; init; }
+    public string MemoryGb { get; init; } = "";   // "4GB" — PowerShell-литерал размера
     public int CpuCount { get; init; }
-    public int DiskSizeGb { get; init; }
+    public string DiskSizeGb { get; init; } = ""; // "40GB" — PowerShell-литерал размера
     public int VideoWidth { get; init; }
     public int VideoHeight { get; init; }
 }

@@ -31,7 +31,7 @@ Write-Host "Using drive letters: EFI=$efiLetter, Windows=$winLetter"
 # New-VHD требует существующий родительский каталог — создаём, если нет.
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $vhdPath) | Out-Null
 Write-Host "Creating VHDX..."
-New-VHD -Path $vhdPath -SizeBytes (${diskSizeGb}GB) -Dynamic
+New-VHD -Path $vhdPath -SizeBytes $diskSizeGb -Dynamic
 Mount-VHD -Path $vhdPath
 $diskNumber = (Get-VHD -Path $vhdPath).DiskNumber
 Initialize-Disk -Number $diskNumber -PartitionStyle GPT
