@@ -11,5 +11,8 @@ $vmName = "@@vm.name@@"
 
 Write-Host "Starting VM..."
 Start-VM -VMName $vmName
-vmconnect localhost $vmName
+# Start-Process, а НЕ "vmconnect ..." напрямую: иначе vmconnect наследует наши
+# перенаправленные stdout/stderr и держит консоль до закрытия окна. Детачим —
+# окно открывается, а шаг сразу возвращается в меню.
+Start-Process vmconnect -ArgumentList 'localhost', $vmName
 Write-Host "Done. Windows should boot directly into setup (specialize + OOBE)."
