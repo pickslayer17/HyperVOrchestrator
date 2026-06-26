@@ -1,6 +1,0 @@
-$VMName = "TestRunner"
-$VMUser = "TestUser"
-$VMPassword = "Test1234!"
-$VMDesktop = "C:\Users\TestUser\Desktop"
-$VMOdtDir = "C:\Users\TestUser\Desktop\ODT"
-$VMProxy = "http://192.168.50.1:3128"

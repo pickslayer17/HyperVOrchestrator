@@ -1,1 +1,0 @@
-vmconnect localhost TestRunner
