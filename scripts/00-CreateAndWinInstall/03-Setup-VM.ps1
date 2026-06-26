@@ -9,6 +9,8 @@ $ScriptTarget = "Host"
 $vmName = "@@vm.name@@"
 $videoWidth = @@vm.videoWidth@@
 $videoHeight = @@vm.videoHeight@@
+$memoryGb = @@vm.memoryGb@@
 
+Set-VMMemory -VMName $vmName -DynamicMemoryEnabled $true -MinimumBytes 1GB -StartupBytes 2GB -MaximumBytes $memoryGb
 Set-VMVideo -VMName $vmName -HorizontalResolution $videoWidth -VerticalResolution $videoHeight -ResolutionType Single
 Set-VM -VMName $vmName -EnhancedSessionTransportType VMBus
