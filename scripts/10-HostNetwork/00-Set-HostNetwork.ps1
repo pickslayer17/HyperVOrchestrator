@@ -13,8 +13,8 @@ $ErrorActionPreference = "Stop"
 # === НАСТРОЙКИ (из конфига) ===
 $switchName = "@@network.switchName@@"
 $natName    = "@@network.natName@@"
-$hostIp     = "@@network.hostIp@@"
-$prefix     = @@network.prefix@@
+$hostIp     = "@@state.hostIp@@"
+$prefix     = @@state.prefix@@
 $vmName     = "@@vm.name@@"
 
 # Префикс подсети для NAT собираем из hostIp: x.y.z.0/prefix

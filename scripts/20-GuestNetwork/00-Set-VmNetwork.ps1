@@ -9,11 +9,11 @@ $ScriptTarget = "VM"
 $ErrorActionPreference = "Stop"
 
 # === НАСТРОЙКИ (из конфига) ===
-$vmIp          = "@@network.vmIp@@"
-$prefix        = @@network.prefix@@
-$gateway       = "@@network.hostIp@@"
+$vmIp          = "@@state.vmIp@@"
+$prefix        = @@state.prefix@@
+$gateway       = "@@state.hostIp@@"
 $dns           = "@@network.dnsServer@@"
-$proxyHostPort = "@@network.hostIp@@:@@network.proxyPort@@"
+$proxyHostPort = "@@state.hostIp@@:@@state.proxyPort@@"
 $vmUser        = "@@credentials.user@@"
 $ifAlias       = "@@network.guestInterfaceAlias@@"
 

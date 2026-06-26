@@ -15,11 +15,6 @@
   "network": {
     "switchName": "NATSwitch",
     "natName": "VMNat",
-    "hostIp": "192.168.50.1",
-    "vmIp": "192.168.50.2",
-    "prefix": 24,
-    "proxyPort": 3128,
-    "rdpForwardPort": 13389,
     "dnsServer": "8.8.8.8",
     "guestInterfaceAlias": "Ethernet"
   },

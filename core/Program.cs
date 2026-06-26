@@ -60,9 +60,14 @@ internal static class Program
         }
     }
 
-    // Шаг = check (опционально) + основной скрипт.
-    // Есть check -> гоним первым; exit 0 => запускаем основной, иначе стоп.
-    // Возвращает true, если основной скрипт отработал успешно (exit 0).
+    // Exit code check-скрипта «уже сделано»: основной НЕ запускаем, степ зелёный.
+    private const int CheckAlreadyDone = 2;
+
+    // Шаг = check (опционально) + основной скрипт. Трёхзначная семантика check:
+    //   exit 0  -> можно/нужно делать: запускаем основной.
+    //   exit 2  -> уже сделано: основной НЕ нужен, степ зелёный.
+    //   иначе   -> нельзя/ошибка: стоп, красный.
+    // Возвращает true при «уже сделано» или успехе основного (exit 0).
     private static bool RunStep(ScriptStep step, ScriptRunner runner, StateStore state, IDictionary<string, string> values)
     {
         if (step.CheckPath is null)
@@ -72,6 +77,11 @@ internal static class Program
         else
         {
             var check = Execute(step.CheckPath, runner, state, values);
+            if (check.Found && check.ExitCode == CheckAlreadyDone)
+            {
+                Ui.Line($"[OK] already done — skipping {step.Name}.", ConsoleColor.Green);
+                return true;
+            }
             if (!check.Found || check.ExitCode != 0)
             {
                 Ui.Line($"[X] check failed (exit {check.ExitCode}) — not running {step.Name}.", ConsoleColor.Red);
