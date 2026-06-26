@@ -11,4 +11,4 @@ $videoWidth = @@vm.videoWidth@@
 $videoHeight = @@vm.videoHeight@@
 
 Set-VMVideo -VMName $vmName -HorizontalResolution $videoWidth -VerticalResolution $videoHeight -ResolutionType Single
-Set-VM -VMName $vmName -EnhancedSessionTransportType None
+Set-VM -VMName $vmName -EnhancedSessionTransportType VMBus
