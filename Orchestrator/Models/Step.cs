@@ -8,4 +8,17 @@ internal sealed class Step : IScriptNode
     public bool HasCheck { get; set; }
     public StepState State { get; set; } = StepState.NotRun;
     public Suite? Parent { get; set; }
+
+    public override string ToString()
+    {
+        var path = Name;
+        var parent = Parent;
+        while (parent is not null)
+        {
+            path = parent.Name + "/" + path;
+            parent = parent.Parent;
+        }
+        var result = path;
+        return result;
+    }
 }

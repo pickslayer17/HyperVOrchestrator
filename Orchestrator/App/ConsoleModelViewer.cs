@@ -36,6 +36,14 @@ internal sealed class ConsoleModelViewer
         Console.WriteLine(line);
     }
 
+    public void ResumeAfterRun()
+    {
+        Console.WriteLine();
+        Console.WriteLine("  -- done, press any key --");
+        Console.ReadKey(intercept: true);
+        Draw();
+    }
+
     private void ReadKeys()
     {
         while (true)

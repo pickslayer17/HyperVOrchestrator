@@ -12,6 +12,7 @@ internal sealed class Orchestrator
     private readonly RunScriptManager _runManager;
     private readonly ScriptModel _model;
     private readonly ConsoleModelViewer _viewer;
+    private readonly Logger _logger;
 
     public Orchestrator(AppConfig config, string repoRoot, string scriptsDir)
     {
@@ -19,6 +20,7 @@ internal sealed class Orchestrator
         var factory = new ScriptModelFactory();
         _model = factory.Create(scriptsDir);
         _viewer = new ConsoleModelViewer(this, _model);
+        _logger = new Logger(repoRoot);
     }
 
     public void Start()
@@ -33,8 +35,8 @@ internal sealed class Orchestrator
         else if (node is Suite suite)
             RunSuite(suite);
 
-        RecalculateStates(_model.Root);
-        _viewer.Draw();
+        _model.Root.Recalculate();
+        _viewer.ResumeAfterRun();
     }
 
     private void RunSuite(Suite suite)
@@ -54,6 +56,7 @@ internal sealed class Orchestrator
             return;
         }
 
+        _logger.SetContext(step + "/check");
         var checkResult = _runManager.ExecuteFileScript(step.CheckPath, WriteLine);
         if (checkResult.ExitCode == CheckAlreadyDone)
         {
@@ -71,6 +74,7 @@ internal sealed class Orchestrator
 
     private void RunMain(Step step)
     {
+        _logger.SetContext(step + "/main");
         var result = _runManager.ExecuteFileScript(step.ScriptPath, WriteLine);
         if (result.ExitCode == 0)
             step.State = StepState.Passed;
@@ -78,50 +82,9 @@ internal sealed class Orchestrator
             step.State = StepState.Failed;
     }
 
-    private void RecalculateStates(Suite suite)
-    {
-        foreach (var childSuite in suite.ChildSuites)
-            RecalculateStates(childSuite);
-
-        var allDone = true;
-        var anyFailed = false;
-        var anyRun = false;
-
-        foreach (var step in suite.Steps)
-        {
-            if (step.State == StepState.NotRun)
-                allDone = false;
-            if (step.State == StepState.Failed)
-                anyFailed = true;
-            if (step.State != StepState.NotRun)
-                anyRun = true;
-        }
-        foreach (var childSuite in suite.ChildSuites)
-        {
-            if (childSuite.State == StepState.NotRun)
-                allDone = false;
-            if (childSuite.State == StepState.Failed)
-                anyFailed = true;
-            if (childSuite.State != StepState.NotRun)
-                anyRun = true;
-        }
-
-        suite.State = ResolveSuiteState(allDone, anyFailed, anyRun);
-    }
-
-    private StepState ResolveSuiteState(bool allDone, bool anyFailed, bool anyRun)
-    {
-        if (anyFailed)
-            return StepState.Failed;
-        if (!anyRun)
-            return StepState.NotRun;
-        if (allDone)
-            return StepState.Passed;
-        return StepState.NotRun;
-    }
-
     private void WriteLine(string line)
     {
+        _logger.Write(line);
         _viewer.WriteOutput(line);
     }
 }
