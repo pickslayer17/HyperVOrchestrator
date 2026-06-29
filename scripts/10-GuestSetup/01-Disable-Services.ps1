@@ -2,6 +2,7 @@
 # shrink the disk footprint of this disposable 40GB VM. Backing registry values
 # (NoAutoUpdate, HiberbootEnabled, ...) are applied in 03-Set-Registry.
 
+$RootPriviledges = $true
 $ScriptTarget = "VM"
 $ErrorActionPreference = "Stop"
 

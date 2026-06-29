@@ -1,6 +1,7 @@
 # Grant the test user full control over C: — foundation for everything that
 # follows (later steps write into protected locations).
 
+$RootPriviledges = $true
 $ScriptTarget = "VM"
 $ErrorActionPreference = "Stop"
 

@@ -1,7 +1,7 @@
 # Strip everything we don't need: UWP bloat, Store, Widgets, OneDrive, Defender,
 # Internet Explorer. Defender removal is HARD (must succeed). Paint/Photos kept.
 # Backing registry value (OneDrive policy) is applied in 03-Set-Registry.
-
+$RootPriviledges = $true
 $ScriptTarget = "VM"
 $ErrorActionPreference = "Stop"
 

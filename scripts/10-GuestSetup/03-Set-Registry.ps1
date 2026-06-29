@@ -1,6 +1,6 @@
 # Apply every registry tweak from the shared list: telemetry/privacy off, focus
 # thieves silenced, Edge tamed, update/sleep/OneDrive backing values, Explorer QoL.
-
+$RootPriviledges = $true
 $ScriptTarget = "VM"
 $ErrorActionPreference = "Stop"
 
