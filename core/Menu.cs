@@ -1,24 +1,15 @@
 namespace Orchestrator;
 
-// Один пункт стрелочного меню.
 internal sealed class MenuItem
 {
     public enum Kind { RunAll, Suite, Step }
 
     public required Kind ItemKind { get; init; }
     public required string Label { get; init; }
-    public string? Group { get; init; }    // для Suite/Step
-    public ScriptStep? Step { get; init; }  // только для Step
+    public string? Group { get; init; }
+    public ScriptStep? Step { get; init; }
 }
 
-// Стрелочное меню: Up/Down двигают подсветку, Enter запускает, q/Esc — выход.
-// Свой рендер через Console (нужен контроль подсветки/цветов). Структура:
-//   RUN ALL suites      -> все сьюты подряд
-//   [суьют]             -> все шаги сьюта с первого
-//       шаг             -> только этот шаг
-// Прогон последовательности (сьют / RUN ALL) НЕ спрашивает Enter между шагами;
-// первый упавший шаг останавливает сьют (и весь RUN ALL). Само выполнение шага —
-// делегат runStep (возвращает успех).
 internal sealed class Menu
 {
     private readonly IReadOnlyList<(string Group, IReadOnlyList<ScriptStep> Steps)> _suites;
@@ -97,7 +88,6 @@ internal sealed class Menu
         }
     }
 
-    // Шаги по очереди БЕЗ ввода между ними; первый провал останавливает прогон.
     private void RunSequence(IEnumerable<ScriptStep> steps)
     {
         foreach (var step in steps)
@@ -153,8 +143,6 @@ internal sealed class Menu
         _                   => Aggregate(_suites.SelectMany(s => s.Steps)),
     };
 
-    // Агрегат статуса сьюта/RUN ALL: любой красный -> красный; все зелёные ->
-    // зелёный; иначе синий (нейтральный/не запускался).
     private ConsoleColor Aggregate(IEnumerable<ScriptStep> steps)
     {
         var colors = steps.Select(s => _status.ColorFor(s.Id)).ToList();

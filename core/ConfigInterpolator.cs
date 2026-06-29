@@ -4,17 +4,11 @@ using System.Text.RegularExpressions;
 
 namespace Orchestrator;
 
-// Подменяет плейсхолдеры @@dotted.path@@ в тексте скрипта значениями из конфига.
-// Путь — точечный, как в JSON: @@vm.name@@, @@network.vmIp@@, @@paths.windowsIso@@.
-// Скрипту всё равно, где он выполнится — он получает готовый текст с подставленными
-// значениями (как и было в исходном проекте).
 internal static partial class ConfigInterpolator
 {
     [GeneratedRegex(@"@@([a-zA-Z0-9_.]+)@@")]
     private static partial Regex Placeholder();
 
-    // Возвращает интерполированный текст. Если в тексте встретился плейсхолдер,
-    // которого нет в карте, бросает — лучше упасть, чем выполнить скрипт с дырой.
     public static string Interpolate(string scriptText, IReadOnlyDictionary<string, string> values)
     {
         return Placeholder().Replace(scriptText, m =>
@@ -26,12 +20,9 @@ internal static partial class ConfigInterpolator
         });
     }
 
-    // Плоская карта "точечный путь -> строковое значение" из дерева конфига.
-    // paths.* берём уже резолвленные (абсолютные) из AppConfig.
     public static IReadOnlyDictionary<string, string> Flatten(AppConfig config)
     {
-        // Сериализуем в JSON и обходим дерево — так карта всегда совпадает
-        // со структурой конфига, без ручного перечисления полей.
+
         var opts = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
         using var doc = JsonDocument.Parse(JsonSerializer.Serialize(config, opts));
 
@@ -53,8 +44,7 @@ internal static partial class ConfigInterpolator
                 break;
 
             case JsonValueKind.Array:
-                // Массивы (напр. office.apps) -> через запятую. Редко нужно в скриптах,
-                // но пусть будет, а не дыра.
+
                 var items = new StringBuilder();
                 var first = true;
                 foreach (var item in el.EnumerateArray())

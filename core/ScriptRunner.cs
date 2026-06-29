@@ -3,30 +3,17 @@ using System.Text;
 
 namespace Orchestrator;
 
-// Результат выполнения одного .ps1. Вывод печатается ЖИВЬЁМ во время работы
-// (через колбэки), поэтому текста stdout/stderr здесь нет — только исход.
 internal sealed record RunResult
 {
-    public required bool Found { get; init; }     // файл найден и запущен
+    public required bool Found { get; init; }
     public required int ExitCode { get; init; }
-    public string? Error { get; init; }            // ошибка ДО запуска (нет файла / битый плейсхолдер)
+    public string? Error { get; init; }
     public IReadOnlyList<(string Key, string Value)> Sets { get; init; } = [];
 }
 
-// Слой ВЫПОЛНЕНИЯ. Берёт путь к .ps1, интерполирует @@config@@, решает по
-// переменной $ScriptTarget где исполнять, при необходимости заворачивает тело в
-// Invoke-Command (PSDirect + креды из конфига), гонит через powershell.exe.
-//
-// Вывод стримится ПОСТРОЧНО по мере поступления (onStdout/onStderr) — длинный
-// шаг (DISM и т.п.) виден сразу, а не после завершения. Печатает вызывающий
-// (через колбэки), runner Console не трогает.
-//
-// Текущий процесс хранится в _current, чтобы Cancel() (Ctrl+C из Program) мог
-// убить его вместе с дочерними (dism/bcdboot) и вернуть управление в меню.
 internal sealed class ScriptRunner
 {
-    // Живая карта значений. Та же ссылка, что у Program: по мере накопления
-    // ::set интерполяция видит новые значения.
+
     private readonly IReadOnlyDictionary<string, string> _values;
     private readonly string _repoRoot;
 
@@ -47,8 +34,7 @@ internal sealed class ScriptRunner
         string interpolated;
         try
         {
-            // inject helper/data files first, THEN interpolate @@...@@ over the
-            // combined text (injected content may itself contain placeholders).
+
             var injected = ScriptInjector.Inject(File.ReadAllText(scriptPath), _repoRoot);
             interpolated = ConfigInterpolator.Interpolate(injected, _values);
         }
@@ -64,19 +50,15 @@ internal sealed class ScriptRunner
         return new RunResult { Found = true, ExitCode = exit, Sets = sets };
     }
 
-    // Убить текущий процесс вместе с деревом (dism, bcdboot, vmconnect...).
-    // Зовётся из обработчика Ctrl+C. Безопасно, если ничего не запущено.
     public void Cancel()
     {
         lock (_gate)
         {
             try { _current?.Kill(entireProcessTree: true); }
-            catch { /* уже завершился — ок */ }
+            catch {  }
         }
     }
 
-    // temp .ps1 + -File: run text as one real script (correct remoting, honest
-    // exit/errors) — not -Command - via stdin. write -> run -> delete.
     private (int exit, IReadOnlyList<(string, string)> sets) RunPowerShell(
         string scriptText, Action<string> onStdout, Action<string> onStderr)
     {
@@ -99,8 +81,6 @@ internal sealed class ScriptRunner
         var sets = new List<(string, string)>();
         var proc = new Process { StartInfo = psi };
 
-        // ::set-строки в вывод не печатаем — собираем в sets. lock сериализует
-        // печать stdout/stderr (события приходят из разных потоков) и защищает sets.
         proc.OutputDataReceived += (_, e) =>
         {
             if (e.Data is null) return;
@@ -125,7 +105,7 @@ internal sealed class ScriptRunner
             proc.BeginOutputReadLine();
             proc.BeginErrorReadLine();
 
-            proc.WaitForExit(); // без таймаута: дожидается и выхода, и слива буферов
+            proc.WaitForExit();
             return (proc.ExitCode, sets);
         }
         finally
@@ -136,9 +116,6 @@ internal sealed class ScriptRunner
         }
     }
 
-    // Завернуть тело в Invoke-Command -VMName с кредами из конфига.
-    // Недоступность ВМ или throw внутри тела -> терминирующая ошибка -> catch ->
-    // exit 1. Поэтому VM-скриптам не нужно самим строить креды и проверять доступность.
     private string WrapForVm(string body)
     {
         var vm = Require("vm.name");
@@ -148,10 +125,12 @@ internal sealed class ScriptRunner
         var sb = new StringBuilder();
         sb.AppendLine("$ErrorActionPreference = 'Stop'");
         sb.AppendLine($"$__cred = New-Object System.Management.Automation.PSCredential('{Lit(user)}', (ConvertTo-SecureString '{Lit(pass)}' -AsPlainText -Force))");
+
         sb.AppendLine("try {");
-        sb.AppendLine($"Invoke-Command -VMName '{Lit(vm)}' -Credential $__cred -ErrorAction Stop -ScriptBlock {{");
+        sb.AppendLine($"$__rc = Invoke-Command -VMName '{Lit(vm)}' -Credential $__cred -ErrorAction Stop -ScriptBlock {{");
         sb.AppendLine(body);
         sb.AppendLine("}");
+        sb.AppendLine("exit ($__rc | Select-Object -Last 1)");
         sb.AppendLine("} catch { Write-Error $_.Exception.Message; exit 1 }");
         return sb.ToString();
     }

@@ -2,8 +2,6 @@ using Microsoft.Extensions.Configuration;
 
 namespace Orchestrator;
 
-// Типизированный конфиг. Биндится из config/default.config.json,
-// поверх мерджится config/local.config.json (реальные значения, в .gitignore).
 internal sealed class AppConfig
 {
     public VmConfig Vm { get; init; } = new();
@@ -14,8 +12,6 @@ internal sealed class AppConfig
     public FlauiConfig Flaui { get; init; } = new();
     public OfficeConfig Office { get; init; } = new();
 
-    // Загружает default + local, биндит в AppConfig, резолвит относительные
-    // пути в paths.* в абсолютные от корня репо.
     public static AppConfig Load(string repoRoot)
     {
         var configDir = Path.Combine(repoRoot, "config");
@@ -33,12 +29,12 @@ internal sealed class AppConfig
 internal sealed class VmConfig
 {
     public string Name { get; init; } = "";
-    public string MemoryGb { get; init; } = "";   // "4GB" — PowerShell-литерал размера
+    public string MemoryGb { get; init; } = "";
     public int CpuCount { get; init; }
-    public string DiskSizeGb { get; init; } = ""; // "40GB" — PowerShell-литерал размера
+    public string DiskSizeGb { get; init; } = "";
     public int VideoWidth { get; init; }
     public int VideoHeight { get; init; }
-    public string TimeZone { get; init; } = "";  // Windows-ID (напр. "FLE Standard Time")
+    public string TimeZone { get; init; } = "";
 }
 
 internal sealed class CredentialsConfig
@@ -62,22 +58,17 @@ internal sealed class NetworkConfig
 
 internal sealed class PathsConfig
 {
-    // Абсолютная директория, куда ставится ВМ. Полный путь VHDX собираем сами:
-    // VmDir + vm.name + ".vhdx". В резолве не участвует — уже абсолютный.
+
     public string VmDir { get; set; } = "";
     public string WindowsIso { get; set; } = "";
-    public string UnattendTemplate { get; set; } = ""; // шаблон с @@@@ (в git)
-    public string UnattendXml { get; set; } = "";      // рендер шаблона (генерится)
+    public string UnattendTemplate { get; set; } = "";
+    public string UnattendXml { get; set; } = "";
     public string OfficeArchive { get; set; } = "";
 
-    // Файл состояния (динамика, вычисленная на лету) — относительный от корня репо.
     public string StateFile { get; set; } = "";
 
-    // Гостевые пути ВНУТРИ ВМ (Windows-абсолютные) — НЕ резолвим от корня хоста.
     public string DotnetInstallDir { get; init; } = "";
 
-    // Хостовые относительные пути из конфига -> абсолютные от корня репо.
-    // Пустые и уже-абсолютные оставляем как есть. Гостевые пути не трогаем.
     public void ResolveAgainst(string repoRoot)
     {
         WindowsIso = Resolve(repoRoot, WindowsIso);

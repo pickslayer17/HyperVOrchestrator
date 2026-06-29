@@ -1,8 +1,5 @@
 namespace Orchestrator;
 
-// Статус шагов в ТЕКУЩЕЙ сессии (по ScriptStep.Id).
-// Зелёный — успех, красный — провал, синий — ещё не запускался.
-// Это не персистентный state (тот — в StateStore), а просто подсветка меню.
 internal sealed class SessionStatus
 {
     private readonly HashSet<string> _succeeded = [];

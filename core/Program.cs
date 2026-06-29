@@ -1,8 +1,5 @@
 namespace Orchestrator;
 
-// Точка входа и ОРКЕСТРАЦИЯ. Вывод -> Ui, выполнение -> ScriptRunner,
-// интерполяция -> ConfigInterpolator, рантайм-state -> StateStore,
-// статус меню -> SessionStatus. Здесь только склейка и цикл меню.
 internal static class Program
 {
     private static int Main()
@@ -11,28 +8,22 @@ internal static class Program
         var scriptsDir = Path.Combine(repoRoot, "scripts");
         var config = AppConfig.Load(repoRoot);
 
-        // Живая карта значений: статический конфиг + рантайм-state поверх.
         var values = new Dictionary<string, string>(ConfigInterpolator.Flatten(config), StringComparer.OrdinalIgnoreCase);
         var state = new StateStore(config.Paths.StateFile);
         foreach (var kv in state.Values)
             values[kv.Key] = kv.Value;
 
-        // Рендер unattend: шаблон с @@@@ -> рабочий xml тем же интерполятором.
-        // Подстановку делает движок, а не скрипт; build-скрипт копирует готовый файл.
         RenderUnattend(config, values);
 
         var runner = new ScriptRunner(values, repoRoot);
         var status = new SessionStatus();
 
-        // Ctrl+C прерывает ТЕКУЩИЙ шаг (убивает процесс + дерево) и возвращает в
-        // меню, а не закрывает оркестратор. Выход — только через 'q'.
         Console.CancelKeyPress += (_, e) =>
         {
             e.Cancel = true;
             runner.Cancel();
         };
 
-        // Сьюты = шаги, сгруппированные по папке, в порядке каталога (00-, 10-...).
         var suites = ScriptCatalog.Scan(scriptsDir)
             .GroupBy(s => s.Group)
             .Select(g => (g.Key, (IReadOnlyList<ScriptStep>)g.ToList()))
@@ -41,8 +32,6 @@ internal static class Program
         new Menu(suites, status, RunStepTracked).Run();
         return 0;
 
-        // Выполнить один шаг + отметить статус. Падения уже ловятся внутри; здесь
-        // ещё страховка от исключений. Возвращает успех (для стопа сьюта/RUN ALL).
         bool RunStepTracked(ScriptStep step)
         {
             bool ok;
@@ -60,14 +49,8 @@ internal static class Program
         }
     }
 
-    // Exit code check-скрипта «уже сделано»: основной НЕ запускаем, степ зелёный.
     private const int CheckAlreadyDone = 2;
 
-    // Шаг = check (опционально) + основной скрипт. Трёхзначная семантика check:
-    //   exit 0  -> можно/нужно делать: запускаем основной.
-    //   exit 2  -> уже сделано: основной НЕ нужен, степ зелёный.
-    //   иначе   -> нельзя/ошибка: стоп, красный.
-    // Возвращает true при «уже сделано» или успехе основного (exit 0).
     private static bool RunStep(ScriptStep step, ScriptRunner runner, StateStore state, IDictionary<string, string> values)
     {
         if (step.CheckPath is null)
@@ -103,15 +86,11 @@ internal static class Program
         return false;
     }
 
-    // Запустить один .ps1: показать заголовок, отдать в runner, применить
-    // ::set в state/карту, напечатать вывод. Печать живёт здесь, не в runner.
     private static RunResult Execute(string scriptPath, ScriptRunner runner, StateStore state, IDictionary<string, string> values)
     {
         Ui.Blank();
         Ui.Line($"--- {Path.GetFileName(scriptPath)} ---", ConsoleColor.DarkGray);
 
-        // Вывод стримится сюда построчно во время работы скрипта: stdout как есть,
-        // stderr — красным. Так длинный шаг (DISM) виден сразу, а не в конце.
         var result = runner.Run(
             scriptPath,
             onStdout: line => Ui.Plain(line),
@@ -130,8 +109,6 @@ internal static class Program
         return result;
     }
 
-    // Читает шаблон unattend, интерполирует @@@@ значениями из конфига и пишет
-    // рабочий xml в paths.unattendXml. Нет шаблона/выхода — тихо пропускаем.
     private static void RenderUnattend(AppConfig config, IReadOnlyDictionary<string, string> values)
     {
         var template = config.Paths.UnattendTemplate;
@@ -144,8 +121,6 @@ internal static class Program
         File.WriteAllText(output, rendered);
     }
 
-    // Корень репо = ближайшая вверх папка, содержащая scripts/. Не зависит от
-    // глубины bin/Debug/netX.
     private static string FindRepoRoot()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
