@@ -61,6 +61,7 @@ internal sealed class ConsoleModelViewer
             }
             if (key.Key == ConsoleKey.Enter)
             {
+                Console.WriteLine("Starting...");
                 var node = _flatNodes[_cursorIndex];
                 _orchestrator.Run(node);
                 return;

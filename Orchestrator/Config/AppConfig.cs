@@ -14,10 +14,9 @@ internal sealed class AppConfig
 
     public static AppConfig Load(string repoRoot)
     {
-        var configDir = Path.Combine(repoRoot, "config");
         var config = new ConfigurationBuilder()
-            .AddJsonFile(Path.Combine(configDir, "default.config.json"), optional: false)
-            .AddJsonFile(Path.Combine(configDir, "local.config.json"), optional: true)
+            .AddJsonFile(Path.Combine(repoRoot, "default.config.json"), optional: false)
+            .AddJsonFile(Path.Combine(repoRoot, "local.config.json"), optional: true)
             .Build();
 
         var app = config.Get<AppConfig>() ?? new AppConfig();
