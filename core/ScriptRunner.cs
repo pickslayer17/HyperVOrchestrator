@@ -67,16 +67,17 @@ internal sealed class ScriptRunner
         }
     }
 
-    // Готовый текст -> powershell.exe через stdin (-Command -). Читаем оба потока
-    // АСИНХРОННО (события), чтобы: (1) видеть вывод сразу; (2) не словить дедлок,
-    // когда один буфер заполняется, пока мы ждём другой.
+    // temp .ps1 + -File: run text as one real script (correct remoting, honest
+    // exit/errors) — not -Command - via stdin. write -> run -> delete.
     private (int exit, IReadOnlyList<(string, string)> sets) RunPowerShell(
         string scriptText, Action<string> onStdout, Action<string> onStderr)
     {
+        var tempPath = Path.Combine(Path.GetTempPath(), $"orch-{Guid.NewGuid():N}.ps1");
+        File.WriteAllText(tempPath, scriptText, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+
         var psi = new ProcessStartInfo
         {
             FileName = "powershell.exe",
-            RedirectStandardInput = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
@@ -84,8 +85,8 @@ internal sealed class ScriptRunner
         psi.ArgumentList.Add("-NoProfile");
         psi.ArgumentList.Add("-ExecutionPolicy");
         psi.ArgumentList.Add("Bypass");
-        psi.ArgumentList.Add("-Command");
-        psi.ArgumentList.Add("-");
+        psi.ArgumentList.Add("-File");
+        psi.ArgumentList.Add(tempPath);
 
         var sets = new List<(string, string)>();
         var proc = new Process { StartInfo = psi };
@@ -115,8 +116,6 @@ internal sealed class ScriptRunner
 
             proc.BeginOutputReadLine();
             proc.BeginErrorReadLine();
-            proc.StandardInput.Write(scriptText);
-            proc.StandardInput.Close();
 
             proc.WaitForExit(); // без таймаута: дожидается и выхода, и слива буферов
             return (proc.ExitCode, sets);
@@ -125,6 +124,7 @@ internal sealed class ScriptRunner
         {
             lock (_gate) _current = null;
             proc.Dispose();
+            try { File.Delete(tempPath); } catch { }
         }
     }
 
