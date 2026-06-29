@@ -10,7 +10,7 @@ $ErrorActionPreference = "Stop"
 # smoke: the services we intend to disable must exist on this OS
 foreach ($s in $ServicesToDisable) {
     if ($s -eq 'dmwappushservice') { continue }  # optional on some builds
-    if (-not (Get-Service -Name $s -ErrorAction SilentlyContinue)) {
+    if (-not (Get-Service -Name $s -ErrorAction Stop)) {
         Write-Host "smoke fail: service '$s' not found on this OS."
         return 1
     }

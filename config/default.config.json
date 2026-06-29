@@ -1,6 +1,6 @@
 {
   "vm": {
-    "name": "TestRunner",
+    "name": "TestRunner2",
     "memoryGb": "4GB",
     "cpuCount": 4,
     "diskSizeGb": "40GB",
