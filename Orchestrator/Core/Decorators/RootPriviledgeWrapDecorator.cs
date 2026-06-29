@@ -28,7 +28,7 @@ for ($__i = 0; $__i -lt 600; $__i++) {{
 }}
 # schtasks /delete /tn $__tn /f | Out-Null
 # Remove-Item -Path $__taskFile -Force -ErrorAction SilentlyContinue
-if (Test-Path $__taskResult) {{ Get-Content $__taskResult -Raw }}";
+if (Test-Path $__taskResult) {{ Get-Content $__taskResult | ForEach-Object {{ Write-Host $_ }} }}";
 
     public string Format(string script)
     {
