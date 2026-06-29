@@ -1,10 +1,12 @@
 using Orchestrator.Config;
 using Orchestrator.Core.Decorators;
+using Orchestrator.Helpers;
 
 namespace Orchestrator.Core;
 
 internal sealed class PreScriptProcessor
 {
+    private readonly VersionDecorator _versionDecorator;
     private readonly InjectDecorator _injectDecorator;
     private readonly InterpolateDecorator _interpolateDecorator;
     private readonly TargetWrapDecorator _targetWrapDecorator;
@@ -12,6 +14,8 @@ internal sealed class PreScriptProcessor
     public PreScriptProcessor(string repoRoot, AppConfig config, StateKeeper stateKeeper)
     {
         var configValues = ConfigFlattener.Flatten(config);
+        var powerShellMajorVersion = SystemHelper.PowerShellMajorVersion();
+        _versionDecorator = new VersionDecorator(powerShellMajorVersion);
         _injectDecorator = new InjectDecorator(repoRoot);
         _interpolateDecorator = new InterpolateDecorator(configValues, stateKeeper);
         _targetWrapDecorator = new TargetWrapDecorator(config.Vm.Name, config.Credentials.User, config.Credentials.Password);
@@ -19,7 +23,8 @@ internal sealed class PreScriptProcessor
 
     public string Process(string script)
     {
-        var injected = _injectDecorator.Format(script);
+        var versioned = _versionDecorator.Format(script);
+        var injected = _injectDecorator.Format(versioned);
         var interpolated = _interpolateDecorator.Format(injected);
         var targetWrapped = _targetWrapDecorator.Format(interpolated);
         var result = targetWrapped;

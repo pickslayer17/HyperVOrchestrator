@@ -28,6 +28,11 @@ internal sealed class ScriptRunner
         processStartInfo.ArgumentList.Add("-File");
         processStartInfo.ArgumentList.Add(tempPath);
 
+        var windowsDir = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+        var systemModules = Path.Combine(windowsDir, @"system32\WindowsPowerShell\v1.0\Modules");
+        var programFilesModules = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), @"WindowsPowerShell\Modules");
+        processStartInfo.Environment["PSModulePath"] = $"{programFilesModules};{systemModules}";
+
         var process = new Process { StartInfo = processStartInfo };
 
         process.OutputDataReceived += (sender, eventArgs) =>
