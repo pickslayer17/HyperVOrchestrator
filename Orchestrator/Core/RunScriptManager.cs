@@ -13,9 +13,10 @@ internal sealed class RunScriptManager
     public RunScriptManager(AppConfig config, string repoRoot)
     {
         var stateKeeper = new StateKeeper(config.Paths.StateFile);
-        _preProcessor = new PreScriptProcessor(repoRoot, config, stateKeeper);
+        var host = new PowerShellHost();
+        _preProcessor = new PreScriptProcessor(repoRoot, config, stateKeeper, host);
         _postProcessor = new PostScriptProcessor(new ResultParser(stateKeeper));
-        _scriptRunner = new ScriptRunner();
+        _scriptRunner = new ScriptRunner(host);
     }
 
     public Result ExecuteFileScript(string scriptPath, Action<string> onLine)

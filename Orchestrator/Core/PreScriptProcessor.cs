@@ -1,6 +1,5 @@
 using Orchestrator.Config;
 using Orchestrator.Core.Decorators;
-using Orchestrator.Helpers;
 
 namespace Orchestrator.Core;
 
@@ -11,11 +10,10 @@ internal sealed class PreScriptProcessor
     private readonly InterpolateDecorator _interpolateDecorator;
     private readonly TargetWrapDecorator _targetWrapDecorator;
 
-    public PreScriptProcessor(string repoRoot, AppConfig config, StateKeeper stateKeeper)
+    public PreScriptProcessor(string repoRoot, AppConfig config, StateKeeper stateKeeper, PowerShellHost host)
     {
         var configValues = ConfigFlattener.Flatten(config);
-        var powerShellMajorVersion = SystemHelper.PowerShellMajorVersion();
-        _versionDecorator = new VersionDecorator(powerShellMajorVersion);
+        _versionDecorator = new VersionDecorator(host.MajorVersion);
         _injectDecorator = new InjectDecorator(repoRoot);
         _interpolateDecorator = new InterpolateDecorator(configValues, stateKeeper);
         _targetWrapDecorator = new TargetWrapDecorator(config.Vm.Name, config.Credentials.User, config.Credentials.Password);

@@ -8,14 +8,14 @@ internal sealed class TargetWrapDecorator : IScriptDecorator
     private const string TargetPattern = @"^\s*\$ScriptTarget\s*=\s*[""']?(Host|VM)[""']?";
 
     private const string WrapTemplate =
-@"$ErrorActionPreference = 'Stop'
-$__cred = New-Object System.Management.Automation.PSCredential('{1}', (ConvertTo-SecureString '{2}' -AsPlainText -Force))
-try {{
-$__rc = Invoke-Command -VMName '{3}' -Credential $__cred -ErrorAction Stop -ScriptBlock {{
-{0}
-}}
-exit ($__rc | Select-Object -Last 1)
-}} catch {{ Write-Error $_.Exception.Message; exit 1 }}";
+        @"$ErrorActionPreference = 'Stop'
+        $__cred = New-Object System.Management.Automation.PSCredential('{1}', (ConvertTo-SecureString '{2}' -AsPlainText -Force))
+        try {{
+        $__rc = Invoke-Command -VMName '{3}' -Credential $__cred -ErrorAction Stop -ScriptBlock {{
+        {0}
+        }}
+        exit ($__rc | Select-Object -Last 1)
+        }} catch {{ Write-Error $_.Exception.Message; exit 1 }}";
 
     private readonly string _vmName;
     private readonly string _user;

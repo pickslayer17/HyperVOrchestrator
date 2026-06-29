@@ -6,7 +6,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build-orchestrator",
-            "program": "${workspaceFolder}/core/bin/Debug/net8.0/Orchestrator.dll",
+            "program": "${workspaceFolder}/Orchestrator/bin/Debug/net8.0/Orchestrator.dll",
             "args": [],
             "cwd": "${workspaceFolder}",
             "stopAtEntry": false,

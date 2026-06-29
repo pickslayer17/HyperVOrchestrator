@@ -8,33 +8,43 @@ namespace Orchestrator.Core;
 internal sealed class ScriptRunner
 {
     private readonly object _gate = new object();
+    private readonly PowerShellHost _host;
     private Process? _current;
+
+    public ScriptRunner(PowerShellHost host)
+    {
+        _host = host;
+    }
 
     public Result Run(string scriptText, Action<string> onLine)
     {
         var tempPath = FileHelper.WriteTempScript(scriptText);
         var output = new StringBuilder();
 
-        var processStartInfo = new ProcessStartInfo
+        var process = _host.BuildProcess(tempPath);
+        RegisterOutputAdded(process, output, onLine);
+
+        var exitCode = RunProcess(process, tempPath);
+
+        var result = new Result
         {
-            FileName = "powershell.exe",
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
+            ExitCode = exitCode,
+            Output = output.ToString(),
         };
-        processStartInfo.ArgumentList.Add("-NoProfile");
-        processStartInfo.ArgumentList.Add("-ExecutionPolicy");
-        processStartInfo.ArgumentList.Add("Bypass");
-        processStartInfo.ArgumentList.Add("-File");
-        processStartInfo.ArgumentList.Add(tempPath);
+        return result;
+    }
 
-        var windowsDir = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
-        var systemModules = Path.Combine(windowsDir, @"system32\WindowsPowerShell\v1.0\Modules");
-        var programFilesModules = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), @"WindowsPowerShell\Modules");
-        processStartInfo.Environment["PSModulePath"] = $"{programFilesModules};{systemModules}";
+    public void Cancel()
+    {
+        lock (_gate)
+        {
+            if (_current is not null)
+                _current.Kill(entireProcessTree: true);
+        }
+    }
 
-        var process = new Process { StartInfo = processStartInfo };
-
+    private void RegisterOutputAdded(Process process, StringBuilder output, Action<string> onLine)
+    {
         process.OutputDataReceived += (sender, eventArgs) =>
         {
             if (eventArgs.Data is null)
@@ -55,24 +65,6 @@ internal sealed class ScriptRunner
                 onLine(eventArgs.Data);
             }
         };
-
-        var exitCode = RunProcess(process, tempPath);
-
-        var result = new Result
-        {
-            ExitCode = exitCode,
-            Output = output.ToString(),
-        };
-        return result;
-    }
-
-    public void Cancel()
-    {
-        lock (_gate)
-        {
-            if (_current is not null)
-                _current.Kill(entireProcessTree: true);
-        }
     }
 
     private int RunProcess(Process process, string tempPath)
