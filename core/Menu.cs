@@ -115,7 +115,7 @@ internal sealed class Menu
 
     private void Draw()
     {
-        Console.Clear();
+        Ui.Clear();
         Console.WriteLine();
         Console.WriteLine("  TestRunner orchestrator   (Up/Down: move   Enter: run   q: quit)");
         Console.WriteLine("  ================================================================");
