@@ -21,7 +21,7 @@ internal static class Program
         // Подстановку делает движок, а не скрипт; build-скрипт копирует готовый файл.
         RenderUnattend(config, values);
 
-        var runner = new ScriptRunner(values);
+        var runner = new ScriptRunner(values, repoRoot);
         var status = new SessionStatus();
 
         // Ctrl+C прерывает ТЕКУЩИЙ шаг (убивает процесс + дерево) и возвращает в

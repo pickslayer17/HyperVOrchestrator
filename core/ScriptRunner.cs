@@ -28,11 +28,16 @@ internal sealed class ScriptRunner
     // Живая карта значений. Та же ссылка, что у Program: по мере накопления
     // ::set интерполяция видит новые значения.
     private readonly IReadOnlyDictionary<string, string> _values;
+    private readonly string _repoRoot;
 
     private readonly object _gate = new();
     private Process? _current;
 
-    public ScriptRunner(IReadOnlyDictionary<string, string> values) => _values = values;
+    public ScriptRunner(IReadOnlyDictionary<string, string> values, string repoRoot)
+    {
+        _values = values;
+        _repoRoot = repoRoot;
+    }
 
     public RunResult Run(string scriptPath, Action<string> onStdout, Action<string> onStderr)
     {
@@ -42,7 +47,10 @@ internal sealed class ScriptRunner
         string interpolated;
         try
         {
-            interpolated = ConfigInterpolator.Interpolate(File.ReadAllText(scriptPath), _values);
+            // inject helper/data files first, THEN interpolate @@...@@ over the
+            // combined text (injected content may itself contain placeholders).
+            var injected = ScriptInjector.Inject(File.ReadAllText(scriptPath), _repoRoot);
+            interpolated = ConfigInterpolator.Interpolate(injected, _values);
         }
         catch (InvalidOperationException ex)
         {
