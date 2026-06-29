@@ -4,8 +4,8 @@
 $ScriptTarget = "VM"
 $ErrorActionPreference = "Stop"
 
-<<inject:scriptHelpers/RegistryHelpers.ps1>>
-<<inject:scriptData/RegistryTweaks.ps1>>
+<<inject::scriptHelpers/RegistryHelpers.ps1>>
+<<inject::scriptData/RegistryTweaks.ps1>>
 
 Set-RegTweaks -Tweaks $RegistryTweaks
 

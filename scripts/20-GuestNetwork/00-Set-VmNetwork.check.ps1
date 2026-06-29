@@ -16,6 +16,6 @@ foreach ($n in 2..254) {
 }
 if (-not $vmIp) { Write-Host "No free IP in subnet ${base}0/24."; exit 1 }
 
-Write-Host "::set state.vmIp=$vmIp"
+Write-Host "<<set::state.vmIp=$vmIp>>"
 Write-Host "Free VM IP picked: $vmIp"
 exit 0

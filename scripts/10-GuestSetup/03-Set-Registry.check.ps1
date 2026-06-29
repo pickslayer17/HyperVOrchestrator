@@ -3,8 +3,8 @@
 $ScriptTarget = "VM"
 $ErrorActionPreference = "Stop"
 
-<<inject:scriptHelpers/RegistryHelpers.ps1>>
-<<inject:scriptData/RegistryTweaks.ps1>>
+<<inject::scriptHelpers/RegistryHelpers.ps1>>
+<<inject::scriptData/RegistryTweaks.ps1>>
 
 # smoke: HKCU must be loaded for the user we run as (per-user keys live there)
 if (-not (Test-Path "HKCU:\Software")) {

@@ -22,8 +22,8 @@ function Find-FreePort([int]$start) {
     while ($listening -contains $p) { $p++ }
     return $p
 }
-Write-Host "::set state.proxyPort=$(Find-FreePort $desiredProxyPort)"
-Write-Host "::set state.rdpForwardPort=$(Find-FreePort $desiredRdpPort)"
+Write-Host "<<set::state.proxyPort=$(Find-FreePort $desiredProxyPort)>>"
+Write-Host "<<set::state.rdpForwardPort=$(Find-FreePort $desiredRdpPort)>>"
 
 # existing switch + nat -> take their real values
 $switch = Get-VMSwitch -Name $switchName -ErrorAction SilentlyContinue
@@ -31,9 +31,9 @@ $nat    = Get-NetNat   -Name $natName    -ErrorAction SilentlyContinue
 $ip = Get-NetIPAddress -InterfaceAlias "vEthernet ($switchName)" -AddressFamily IPv4 -ErrorAction SilentlyContinue |
       Where-Object { $_.PrefixOrigin -ne 'WellKnown' } | Select-Object -First 1
 if ($switch -and $nat -and $ip) {
-    Write-Host "::set state.hostIp=$($ip.IPAddress)"
-    Write-Host "::set state.prefix=$($ip.PrefixLength)"
-    Write-Host "::set state.hostSwitchIfIndex=$($ip.InterfaceIndex)"
+    Write-Host "<<set::state.hostIp=$($ip.IPAddress)>>"
+    Write-Host "<<set::state.prefix=$($ip.PrefixLength)>>"
+    Write-Host "<<set::state.hostSwitchIfIndex=$($ip.InterfaceIndex)>>"
     Write-Host "Host network already configured: $($ip.IPAddress)/$($ip.PrefixLength)."
     exit 2
 }
@@ -49,7 +49,7 @@ foreach ($third in 50..99) {
 }
 if (-not $gw) { Write-Host "No free gateway IP found."; exit 1 }
 
-Write-Host "::set state.hostIp=$gw"
-Write-Host "::set state.prefix=$desiredPrefix"
+Write-Host "<<set::state.hostIp=$gw>>"
+Write-Host "<<set::state.prefix=$desiredPrefix>>"
 Write-Host "Host ready; will create $switchName at $gw/$desiredPrefix."
 exit 0

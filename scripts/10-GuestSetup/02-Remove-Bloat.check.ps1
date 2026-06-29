@@ -3,8 +3,8 @@
 $ScriptTarget = "VM"
 $ErrorActionPreference = "Stop"
 
-<<inject:scriptHelpers/SystemHelpers.ps1>>
-<<inject:scriptData/AppsToRemove.ps1>>
+<<inject::scriptHelpers/SystemHelpers.ps1>>
+<<inject::scriptData/AppsToRemove.ps1>>
 
 # smoke: the tooling we rely on must be present
 if (-not (Get-Command Get-AppxProvisionedPackage -ErrorAction SilentlyContinue)) {

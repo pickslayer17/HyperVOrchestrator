@@ -47,5 +47,5 @@ if ($adapter -and $adapter.SwitchName -ne $switchName) {
     Write-Host "VM connected to $switchName."
 }
 
-Write-Host "::set state.hostSwitchIfIndex=$ifIndex"
+Write-Host "<<set::state.hostSwitchIfIndex=$ifIndex>>"
 Write-Host "Host network ready."

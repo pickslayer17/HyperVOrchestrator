@@ -3,9 +3,9 @@
 $ScriptTarget = "VM"
 $ErrorActionPreference = "Stop"
 
-<<inject:scriptHelpers/SystemHelpers.ps1>>
-<<inject:scriptHelpers/RegistryHelpers.ps1>>
-<<inject:scriptData/Services.ps1>>
+<<inject::scriptHelpers/SystemHelpers.ps1>>
+<<inject::scriptHelpers/RegistryHelpers.ps1>>
+<<inject::scriptData/Services.ps1>>
 
 # smoke: the services we intend to disable must exist on this OS
 foreach ($s in $ServicesToDisable) {

@@ -5,8 +5,8 @@
 $ScriptTarget = "VM"
 $ErrorActionPreference = "Stop"
 
-<<inject:scriptHelpers/SystemHelpers.ps1>>
-<<inject:scriptData/AppsToRemove.ps1>>
+<<inject::scriptHelpers/SystemHelpers.ps1>>
+<<inject::scriptData/AppsToRemove.ps1>>
 
 # --- UWP apps + Store + Widgets ---
 foreach ($app in $AppsToRemove) { Remove-AppxByWildcard -Match $app }
