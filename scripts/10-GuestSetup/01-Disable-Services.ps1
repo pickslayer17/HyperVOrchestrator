@@ -13,6 +13,11 @@ $ErrorActionPreference = "Stop"
 # --- Disable services + Windows Update scheduled tasks ---
 foreach ($s in $ServicesToDisable) { Disable-ServiceHard -Name $s }
 foreach ($r in $ServiceRegStart) { Set-RegValue @r }
+
+# Start=4 only blocks the NEXT boot; a live wlms keeps running and will shut the VM
+# down once more. Kill it now so there is no leftover shutdown.
+Stop-Service wlms -Force -ErrorAction SilentlyContinue
+taskkill /f /im wlms.exe 2>$null
 Get-ScheduledTask -TaskPath "\Microsoft\Windows\WindowsUpdate\" | Disable-ScheduledTask -ErrorAction SilentlyContinue
 schtasks /Change /TN "\Microsoft\Windows\Defrag\ScheduledDefrag" /Disable
 
