@@ -30,6 +30,7 @@ internal sealed class AppConfig
 internal sealed class VmConfig
 {
     public string Name { get; init; } = "";
+    public string Host { get; init; } = "";
     public string MemoryGb { get; init; } = "";
     public int CpuCount { get; init; }
     public string DiskSizeGb { get; init; } = "";
