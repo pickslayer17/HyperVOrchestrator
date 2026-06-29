@@ -6,8 +6,12 @@ $ErrorActionPreference = "Stop"
 $vmUser = "@@credentials.user@@"
 
 Set-Service wuauserv -StartupType Disabled
+sc.exe config wuauserv start= disabled
 Stop-Service wuauserv -Force
 reg add "HKLM\SOFTWARE\Microsoft\Windows\WindowsUpdate\AU" /v NoAutoUpdate /t REG_DWORD /d 1 /f
+# Отключить планировщик обновлений
+Get-ScheduledTask -TaskPath "\Microsoft\Windows\WindowsUpdate\" |
+  Disable-ScheduledTask
 Disable-ComputerRestore -Drive "C:\"
 powercfg /h off
 Set-Service WSearch -StartupType Disabled
