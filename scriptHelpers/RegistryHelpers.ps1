@@ -38,9 +38,14 @@ function Test-RegValue {
 }
 
 # Apply a whole list of @{Path;Name;Value;Type} entries.
-function Set-RegTweaks {
+# Apply only the entries not already at the target value; logs each one it touches.
+function Set-MissingRegTweaks {
     param([Parameter(Mandatory)][array]$Tweaks)
-    foreach ($t in $Tweaks) { Set-RegValue -Path $t.Path -Name $t.Name -Value $t.Value -Type $t.Type }
+    foreach ($t in $Tweaks) {
+        if (Test-RegValue -Path $t.Path -Name $t.Name -Value $t.Value) { continue }
+        Write-Host "'$($t.Path)\$($t.Name)': missing (setting to $($t.Value))"
+        Set-RegValue -Path $t.Path -Name $t.Name -Value $t.Value -Type $t.Type
+    }
 }
 
 # Return the first entry that is NOT yet applied, or $null if all match.

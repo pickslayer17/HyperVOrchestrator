@@ -57,24 +57,29 @@ internal sealed class Orchestrator
         }
 
         _logger.SetContext(step + "/check");
+        WriteLine($"[CHECK {step}]");
         var checkResult = _runManager.ExecuteFileScript(step.CheckPath, WriteLine);
         if (checkResult.ExitCode == CheckAlreadyDone)
         {
+            WriteLine($"[CHECK RESULT: already done — skipping main]");
             step.State = StepState.AlreadyDone;
             return;
         }
         if (checkResult.ExitCode != CheckRunMain)
         {
+            WriteLine($"[CHECK RESULT: failed (exit {checkResult.ExitCode}) — main not run]");
             step.State = StepState.Failed;
             return;
         }
 
+        WriteLine($"[CHECK RESULT: needs work — running main]");
         RunMain(step);
     }
 
     private void RunMain(Step step)
     {
         _logger.SetContext(step + "/main");
+        WriteLine($"[STEP {step}]");
         var result = _runManager.ExecuteFileScript(step.ScriptPath, WriteLine);
         if (result.ExitCode == 0)
             step.State = StepState.Passed;

@@ -16,22 +16,36 @@ foreach ($s in $ServicesToDisable) {
     }
 }
 
-# done? every service Disabled
-foreach ($s in $ServicesToDisable) {
-    if (-not (Test-ServiceDisabled -Name $s)) { Write-Host "todo: service '$s' not Disabled."; return 0 }
-}
+# Collect a per-item report; print it only if there is work to do, otherwise one line.
+$report = [System.Collections.Generic.List[string]]::new()
+$needsWork = $false
 
-# done? DoSvc registry start value applied
-foreach ($r in $ServiceRegStart) {
-    if (-not (Test-RegValue -Path $r.Path -Name $r.Name -Value $r.Value)) {
-        Write-Host "todo: $($r.Path)\$($r.Name) not set."; return 0
+foreach ($s in $ServicesToDisable) {
+    if (Test-ServiceDisabled -Name $s) {
+        $report.Add("'$s': disabled")
+    } else {
+        $report.Add("'$s': enabled (needs disabling)")
+        $needsWork = $true
     }
 }
 
-# done? no sleep timeouts, page file fixed, reserved storage off
-if (-not (Test-NoSleepTimeouts))        { Write-Host "todo: sleep/idle timeouts still set."; return 0 }
-if (-not (Test-PageFileFixed))          { Write-Host "todo: page file not fixed."; return 0 }
-if (-not (Test-ReservedStorageDisabled)){ Write-Host "todo: reserved storage not disabled."; return 0 }
+foreach ($r in $ServiceRegStart) {
+    $key = "$($r.Path)\$($r.Name)"
+    if (Test-RegValue -Path $r.Path -Name $r.Name -Value $r.Value) {
+        $report.Add("'$key': applied")
+    } else {
+        $report.Add("'$key': missing (needs to be set)")
+        $needsWork = $true
+    }
+}
 
+if (Test-NoSleepTimeouts)        { $report.Add("'sleep timeouts': off") }        else { $report.Add("'sleep timeouts': still set (needs disabling)"); $needsWork = $true }
+if (Test-PageFileFixed)          { $report.Add("'page file': fixed") }            else { $report.Add("'page file': not fixed (needs fixing)"); $needsWork = $true }
+if (Test-ReservedStorageDisabled){ $report.Add("'reserved storage': disabled") } else { $report.Add("'reserved storage': enabled (needs disabling)"); $needsWork = $true }
+
+if ($needsWork) {
+    $report | ForEach-Object { Write-Host $_ }
+    return 0
+}
 Write-Host "already done: services disabled, sleep off, footprint trimmed."
 return 2

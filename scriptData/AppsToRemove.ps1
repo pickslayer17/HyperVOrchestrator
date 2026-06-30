@@ -1,4 +1,4 @@
-# UWP packages to strip (matched as wildcards). Consumed by 02-Remove-Bloat
+# UWP packages to strip (matched as wildcards). Consumed by 02-Remove-Microsoft-Apps
 # .ps1 (remove) and .check.ps1 (verify absent). Paint/Photos intentionally kept.
 
 $AppsToRemove = @(
@@ -40,11 +40,4 @@ $AppsToRemove = @(
     'Microsoft.StorePurchaseApp'
     'Microsoft.Windows.Widgets'
     'MicrosoftWindows.Client.WebExperience'
-)
-
-# Optional features removed via DISM. 'Hard' ones must succeed (the check treats
-# their presence as not-done); IE is tolerant of being already absent.
-$FeaturesToRemove = @(
-    @{ Name = 'Windows-Defender'; Hard = $true }
-    @{ Name = 'Internet-Explorer-Optional-amd64'; Hard = $false }
 )

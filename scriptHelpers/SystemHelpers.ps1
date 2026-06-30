@@ -1,6 +1,18 @@
 # Service / power / appx / feature helpers shared by set- and check-scripts
 # (injected by the engine before interpolation).
 
+# --- Processes ---
+
+# Kill a process by image name. A missing process is fine (write a note and move on);
+# any other taskkill failure is a real error and rethrown.
+function Stop-ProcessHard {
+    param([Parameter(Mandatory)][string]$ImageName)
+    $out = taskkill /f /im $ImageName 2>&1
+    if ($LASTEXITCODE -eq 0) { Write-Host "killed $ImageName"; return }
+    if ($out -match 'not found') { Write-Host "$ImageName not running, skipped"; return }
+    throw "taskkill $ImageName failed: $out"
+}
+
 # --- Services ---
 
 function Disable-ServiceHard {

@@ -1,4 +1,4 @@
-# exit 2 = all bloat gone (apps + hard features + OneDrive) ; exit 0 = work to do.
+# exit 2 = all targeted apps + OneDrive gone ; exit 0 = work to do.
 
 $ScriptTarget = "VM"
 $ErrorActionPreference = "Stop"
@@ -12,22 +12,29 @@ if (-not (Get-Command Get-AppxProvisionedPackage -ErrorAction SilentlyContinue))
     return 1
 }
 
-# done? every targeted app absent (installed-for-any-user is the signal)
-foreach ($app in $AppsToRemove) {
-    if (-not (Test-AppxAbsent -Match $app)) { Write-Host "todo: app still present: $app"; return 0 }
-}
+# Collect a per-item report; print it only if there is work to do, otherwise one line.
+$report = [System.Collections.Generic.List[string]]::new()
+$needsWork = $false
 
-# done? every HARD feature removed (IE tolerant — not gating)
-foreach ($f in $FeaturesToRemove) {
-    if ($f.Hard -and -not (Test-FeatureRemoved -Name $f.Name)) {
-        Write-Host "todo: feature still present: $($f.Name)"; return 0
+foreach ($app in $AppsToRemove) {
+    if (Test-AppxAbsent -Match $app) {
+        $report.Add("'$app': absent")
+    } else {
+        $report.Add("'$app': present (needs removal)")
+        $needsWork = $true
     }
 }
 
-# done? OneDrive setup binaries gone
 if ((Test-Path "C:\Windows\System32\OneDriveSetup.exe") -or (Test-Path "C:\Windows\SysWOW64\OneDriveSetup.exe")) {
-    Write-Host "todo: OneDrive still present."; return 0
+    $report.Add("'OneDrive': present (needs removal)")
+    $needsWork = $true
+} else {
+    $report.Add("'OneDrive': absent")
 }
 
-Write-Host "already done: apps/features/OneDrive removed."
+if ($needsWork) {
+    $report | ForEach-Object { Write-Host $_ }
+    return 0
+}
+Write-Host "already done: apps + OneDrive removed."
 return 2

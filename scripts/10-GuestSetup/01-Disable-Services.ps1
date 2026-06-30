@@ -1,6 +1,6 @@
 # Quiesce the guest: disable background services, kill every sleep/idle timeout,
 # shrink the disk footprint of this disposable 40GB VM. Backing registry values
-# (NoAutoUpdate, HiberbootEnabled, ...) are applied in 03-Set-Registry.
+# (NoAutoUpdate, HiberbootEnabled, ...) are applied in 04-Set-Registry.
 
 $RootPriviledges = $true
 $ScriptTarget = "VM"
@@ -10,14 +10,22 @@ $ErrorActionPreference = "Stop"
 <<inject::scriptHelpers/RegistryHelpers.ps1>>
 <<inject::scriptData/Services.ps1>>
 
-# --- Disable services + Windows Update scheduled tasks ---
-foreach ($s in $ServicesToDisable) { Disable-ServiceHard -Name $s }
-foreach ($r in $ServiceRegStart) { Set-RegValue @r }
+# --- Disable services + Windows Update scheduled tasks (only those not yet done) ---
+foreach ($s in $ServicesToDisable) {
+    if (Test-ServiceDisabled -Name $s) { continue }
+    Write-Host "'$s': enabled (disabling)"
+    Disable-ServiceHard -Name $s
+}
+foreach ($r in $ServiceRegStart) {
+    if (Test-RegValue -Path $r.Path -Name $r.Name -Value $r.Value) { continue }
+    Write-Host "'$($r.Path)\$($r.Name)': missing (setting to $($r.Value))"
+    Set-RegValue @r
+}
 
 # Start=4 only blocks the NEXT boot; a live wlms keeps running and will shut the VM
 # down once more. Kill it now so there is no leftover shutdown.
 Stop-Service wlms -Force -ErrorAction SilentlyContinue
-taskkill /f /im wlms.exe 2>$null
+Stop-ProcessHard -ImageName wlms.exe
 Get-ScheduledTask -TaskPath "\Microsoft\Windows\WindowsUpdate\" | Disable-ScheduledTask -ErrorAction SilentlyContinue
 schtasks /Change /TN "\Microsoft\Windows\Defrag\ScheduledDefrag" /Disable
 
