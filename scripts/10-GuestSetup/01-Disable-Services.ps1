@@ -26,10 +26,10 @@ foreach ($r in $ServiceRegStart) {
     Set-RegValue @r
 }
 
-# Start=4 only blocks the NEXT boot; a live wlms keeps running and will shut the VM
-# down once more. Kill it now so there is no leftover shutdown.
-Stop-Service wlms -Force -ErrorAction SilentlyContinue
-Stop-ProcessHard -ImageName wlms.exe
+# wlms is disabled via registry Start=4 above (won't start after the next reboot).
+# We do NOT kill the live process: wlms.exe is a CRITICAL process on eval Windows, so
+# taskkill /f triggers a 0xEF CRITICAL_PROCESS_DIED bugcheck. A live wlms may fire one
+# last shutdown before the reboot, which is far better than a BSOD loop.
 Get-ScheduledTask -TaskPath "\Microsoft\Windows\WindowsUpdate\" | Disable-ScheduledTask -ErrorAction SilentlyContinue
 schtasks /Change /TN "\Microsoft\Windows\Defrag\ScheduledDefrag" /Disable
 
