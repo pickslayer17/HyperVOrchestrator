@@ -12,21 +12,20 @@ if (-not (Test-Path "HKCU:\Software")) {
     return 1
 }
 
-# Collect a per-item report; print it only if there is work to do, otherwise one line.
-$report = [System.Collections.Generic.List[string]]::new()
-$needsWork = $false
+# Only list what is actually missing (needs setting); count the rest.
+$missing = [System.Collections.Generic.List[string]]::new()
+$appliedCount = 0
 foreach ($t in $RegistryTweaks) {
-    $key = "$($t.Path)\$($t.Name)"
     if (Test-RegValue -Path $t.Path -Name $t.Name -Value $t.Value) {
-        $report.Add("'$key': applied")
+        $appliedCount++
     } else {
-        $report.Add("'$key': missing (needs to be set)")
-        $needsWork = $true
+        $missing.Add("$($t.Path)\$($t.Name)")
     }
 }
 
-if ($needsWork) {
-    $report | ForEach-Object { Write-Host $_ }
+if ($missing.Count -gt 0) {
+    Write-Host "$appliedCount applied, $($missing.Count) missing (need setting):"
+    $missing | ForEach-Object { Write-Host "  $_" }
     return 0
 }
 Write-Host "already done: all $($RegistryTweaks.Count) registry tweaks applied."

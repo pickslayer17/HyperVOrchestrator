@@ -16,35 +16,23 @@ foreach ($s in $ServicesToDisable) {
     }
 }
 
-# Collect a per-item report; print it only if there is work to do, otherwise one line.
-$report = [System.Collections.Generic.List[string]]::new()
-$needsWork = $false
+# Only list what still needs doing; count what's already done.
+$todo = [System.Collections.Generic.List[string]]::new()
+$doneCount = 0
 
 foreach ($s in $ServicesToDisable) {
-    if (Test-ServiceDisabled -Name $s) {
-        $report.Add("'$s': disabled")
-    } else {
-        $report.Add("'$s': enabled (needs disabling)")
-        $needsWork = $true
-    }
+    if (Test-ServiceDisabled -Name $s) { $doneCount++ } else { $todo.Add("service $s (enable->disable)") }
 }
-
 foreach ($r in $ServiceRegStart) {
-    $key = "$($r.Path)\$($r.Name)"
-    if (Test-RegValue -Path $r.Path -Name $r.Name -Value $r.Value) {
-        $report.Add("'$key': applied")
-    } else {
-        $report.Add("'$key': missing (needs to be set)")
-        $needsWork = $true
-    }
+    if (Test-RegValue -Path $r.Path -Name $r.Name -Value $r.Value) { $doneCount++ } else { $todo.Add("reg $($r.Path)\$($r.Name)") }
 }
+if (Test-NoSleepTimeouts)        { $doneCount++ } else { $todo.Add("sleep timeouts") }
+if (Test-PageFileFixed)          { $doneCount++ } else { $todo.Add("page file") }
+if (Test-ReservedStorageDisabled){ $doneCount++ } else { $todo.Add("reserved storage") }
 
-if (Test-NoSleepTimeouts)        { $report.Add("'sleep timeouts': off") }        else { $report.Add("'sleep timeouts': still set (needs disabling)"); $needsWork = $true }
-if (Test-PageFileFixed)          { $report.Add("'page file': fixed") }            else { $report.Add("'page file': not fixed (needs fixing)"); $needsWork = $true }
-if (Test-ReservedStorageDisabled){ $report.Add("'reserved storage': disabled") } else { $report.Add("'reserved storage': enabled (needs disabling)"); $needsWork = $true }
-
-if ($needsWork) {
-    $report | ForEach-Object { Write-Host $_ }
+if ($todo.Count -gt 0) {
+    Write-Host "$doneCount done, $($todo.Count) need work:"
+    $todo | ForEach-Object { Write-Host "  $_" }
     return 0
 }
 Write-Host "already done: services disabled, sleep off, footprint trimmed."

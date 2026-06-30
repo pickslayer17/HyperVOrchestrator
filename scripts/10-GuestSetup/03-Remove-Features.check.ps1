@@ -6,21 +6,17 @@ $ErrorActionPreference = "Stop"
 <<inject::scriptHelpers/SystemHelpers.ps1>>
 <<inject::scriptData/FeaturesToRemove.ps1>>
 
-# Collect a per-item report; print it only if there is work to do, otherwise one line.
-$report = [System.Collections.Generic.List[string]]::new()
-$needsWork = $false
+# Only list what is actually present (needs removal); count the rest.
+$present = [System.Collections.Generic.List[string]]::new()
+$absentCount = 0
 foreach ($f in $FeaturesToRemove) {
     if (-not $f.Hard) { continue }
-    if (Test-FeatureRemoved -Name $f.Name) {
-        $report.Add("'$($f.Name)': absent")
-    } else {
-        $report.Add("'$($f.Name)': present (needs removal)")
-        $needsWork = $true
-    }
+    if (Test-FeatureRemoved -Name $f.Name) { $absentCount++ } else { $present.Add($f.Name) }
 }
 
-if ($needsWork) {
-    $report | ForEach-Object { Write-Host $_ }
+if ($present.Count -gt 0) {
+    Write-Host "$absentCount absent, $($present.Count) present (need removal):"
+    $present | ForEach-Object { Write-Host "  $_" }
     return 0
 }
 Write-Host "already done: optional features removed."

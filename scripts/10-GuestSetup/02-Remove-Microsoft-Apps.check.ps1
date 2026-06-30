@@ -12,30 +12,21 @@ if (-not (Get-Command Get-AppxProvisionedPackage -ErrorAction SilentlyContinue))
     return 1
 }
 
-# Collect a per-item report; print it only if there is work to do, otherwise one line.
-$report = [System.Collections.Generic.List[string]]::new()
-$needsWork = $false
+# Only list what is actually present (needs removal); count the rest.
+$present = [System.Collections.Generic.List[string]]::new()
+$absentCount = 0
 
 foreach ($app in $AppsToRemove) {
-    if (Test-AppxAbsent -Match $app) {
-        $report.Add("'$app': absent")
-    } else {
-        $report.Add("'$app': present (needs removal)")
-        $needsWork = $true
-    }
+    if (Test-AppxAbsent -Match $app) { $absentCount++ } else { $present.Add($app) }
 }
 
 # OneDrive done = user install folder gone. The OneDriveSetup.exe binary stays
 # (TrustedInstaller-owned, undeletable, harmless) so we do NOT gate on it.
-if (Test-Path "$env:LOCALAPPDATA\Microsoft\OneDrive") {
-    $report.Add("'OneDrive': installed (needs removal)")
-    $needsWork = $true
-} else {
-    $report.Add("'OneDrive': removed")
-}
+if (Test-Path "$env:LOCALAPPDATA\Microsoft\OneDrive") { $present.Add("OneDrive") } else { $absentCount++ }
 
-if ($needsWork) {
-    $report | ForEach-Object { Write-Host $_ }
+if ($present.Count -gt 0) {
+    Write-Host "$absentCount absent, $($present.Count) present (need removal):"
+    $present | ForEach-Object { Write-Host "  $_" }
     return 0
 }
 Write-Host "already done: apps + OneDrive removed."

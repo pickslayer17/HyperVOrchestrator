@@ -39,21 +39,29 @@ internal sealed class Orchestrator
         _viewer.ResumeAfterRun();
     }
 
-    private void RunSuite(Suite suite)
+    // Returns false as soon as any step fails, so the whole run stops there.
+    private bool RunSuite(Suite suite)
     {
         foreach (var step in suite.Steps)
-            RunStep(step);
+        {
+            if (!RunStep(step))
+                return false;
+        }
         foreach (var childSuite in suite.ChildSuites)
-            RunSuite(childSuite);
+        {
+            if (!RunSuite(childSuite))
+                return false;
+        }
+        return true;
     }
 
-    private void RunStep(Step step)
+    private bool RunStep(Step step)
     {
         if (!step.HasCheck)
         {
-            RunMain(step);
-            step.State = StepState.NoCheck;
-            return;
+            var okNoCheck = RunMain(step);
+            if (okNoCheck) step.State = StepState.NoCheck;
+            return okNoCheck;
         }
 
         _logger.SetContext(step + "/check");
@@ -63,28 +71,32 @@ internal sealed class Orchestrator
         {
             WriteLine($"[CHECK RESULT: already done — skipping main]");
             step.State = StepState.AlreadyDone;
-            return;
+            return true;
         }
         if (checkResult.ExitCode != CheckRunMain)
         {
             WriteLine($"[CHECK RESULT: failed (exit {checkResult.ExitCode}) — main not run]");
             step.State = StepState.Failed;
-            return;
+            return false;
         }
 
         WriteLine($"[CHECK RESULT: needs work — running main]");
-        RunMain(step);
+        var ok = RunMain(step);
+        return ok;
     }
 
-    private void RunMain(Step step)
+    private bool RunMain(Step step)
     {
         _logger.SetContext(step + "/main");
         WriteLine($"[STEP {step}]");
         var result = _runManager.ExecuteFileScript(step.ScriptPath, WriteLine);
         if (result.ExitCode == 0)
+        {
             step.State = StepState.Passed;
-        else
-            step.State = StepState.Failed;
+            return true;
+        }
+        step.State = StepState.Failed;
+        return false;
     }
 
     private void WriteLine(string line)
