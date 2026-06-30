@@ -15,13 +15,13 @@ foreach ($app in $AppsToRemove) {
     Remove-AppxByWildcard -Match $app
 }
 
-# --- OneDrive: kill, uninstall, scrub setup binary ---
-Write-Host "removing OneDrive"
+# --- OneDrive: kill + uninstall via its own setup. The OneDriveSetup.exe binary is
+# owned by TrustedInstaller and cannot be deleted even as SYSTEM; it is harmless
+# (nothing launches it once uninstalled), so we leave it and don't gate on it. ---
+Write-Host "uninstalling OneDrive"
 Stop-ProcessHard -ImageName OneDrive.exe
 if (Test-Path "C:\Windows\SysWOW64\OneDriveSetup.exe") { Start-Process "C:\Windows\SysWOW64\OneDriveSetup.exe" -ArgumentList "/uninstall" -Wait }
 if (Test-Path "C:\Windows\System32\OneDriveSetup.exe") { Start-Process "C:\Windows\System32\OneDriveSetup.exe" -ArgumentList "/uninstall" -Wait }
-Remove-Item "C:\Windows\SysWOW64\OneDriveSetup.exe" -Force -ErrorAction SilentlyContinue
-Remove-Item "C:\Windows\System32\OneDriveSetup.exe" -Force -ErrorAction SilentlyContinue
 Remove-Item "$env:LOCALAPPDATA\Microsoft\OneDrive" -Recurse -Force -ErrorAction SilentlyContinue
 
 Write-Host "Microsoft apps + OneDrive removed."

@@ -25,11 +25,13 @@ foreach ($app in $AppsToRemove) {
     }
 }
 
-if ((Test-Path "C:\Windows\System32\OneDriveSetup.exe") -or (Test-Path "C:\Windows\SysWOW64\OneDriveSetup.exe")) {
-    $report.Add("'OneDrive': present (needs removal)")
+# OneDrive done = user install folder gone. The OneDriveSetup.exe binary stays
+# (TrustedInstaller-owned, undeletable, harmless) so we do NOT gate on it.
+if (Test-Path "$env:LOCALAPPDATA\Microsoft\OneDrive") {
+    $report.Add("'OneDrive': installed (needs removal)")
     $needsWork = $true
 } else {
-    $report.Add("'OneDrive': absent")
+    $report.Add("'OneDrive': removed")
 }
 
 if ($needsWork) {
