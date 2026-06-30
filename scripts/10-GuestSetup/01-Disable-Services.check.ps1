@@ -1,4 +1,4 @@
-# return 2 = services disabled + sleep off + footprint trimmed ; 0 = work to do.
+# return 2 = services disabled + reg start applied ; 0 = work to do.
 
 $ScriptTarget = "VM"
 $ErrorActionPreference = "Stop"
@@ -26,14 +26,11 @@ foreach ($s in $ServicesToDisable) {
 foreach ($r in $ServiceRegStart) {
     if (Test-RegValue -Path $r.Path -Name $r.Name -Value $r.Value) { $doneCount++ } else { $todo.Add("reg $($r.Path)\$($r.Name)") }
 }
-if (Test-NoSleepTimeouts)        { $doneCount++ } else { $todo.Add("sleep timeouts") }
-if (Test-PageFileFixed)          { $doneCount++ } else { $todo.Add("page file") }
-if (Test-ReservedStorageDisabled){ $doneCount++ } else { $todo.Add("reserved storage") }
 
 if ($todo.Count -gt 0) {
     Write-Host "$doneCount done, $($todo.Count) need work:"
     $todo | ForEach-Object { Write-Host "  $_" }
     return 0
 }
-Write-Host "already done: services disabled, sleep off, footprint trimmed."
+Write-Host "already done: services disabled, reg start applied."
 return 2
