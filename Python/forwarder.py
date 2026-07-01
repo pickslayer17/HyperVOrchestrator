@@ -1,6 +1,8 @@
 import socket
 import threading
 
+from netlog import log
+
 BUFFER_SIZE = 65536
 
 
@@ -12,8 +14,9 @@ class ForwardHandler:
     def __call__(self, client_sock, addr):
         try:
             remote = socket.create_connection((self.target_ip, self.target_port), timeout=10)
+            log("FWD", f"{addr[0]} -> {self.target_ip}:{self.target_port} open")
         except Exception as e:
-            print(f"forward failed {self.target_ip}:{self.target_port}: {e}")
+            log("FWD", f"{addr[0]} -> {self.target_ip}:{self.target_port} FAILED: {e}")
             self._close(client_sock)
             return
         threading.Thread(target=self._pump, args=(client_sock, remote), daemon=True).start()

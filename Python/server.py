@@ -4,6 +4,7 @@ import time
 from multiprocessing.connection import Listener as IpcListener, Client
 
 from manager import Manager
+from netlog import log
 
 PIPE_ADDR = r"\\.\pipe\hyperv-netagent"
 IDLE_TIMEOUT = 300
@@ -28,6 +29,7 @@ def parse(argv):
 
 
 def apply(manager, cmd, opts):
+    log("CMD", f"{cmd} {opts}")
     if cmd == "Start-Proxy":
         manager.start_proxy(opts["ip"], opts["port"])
     elif cmd == "AddMachine":
@@ -51,7 +53,9 @@ def watcher(manager):
         time.sleep(IDLE_TIMEOUT)
         for m in manager.snapshot():
             if m.last_seen and (time.time() - m.last_seen) > IDLE_TIMEOUT:
+                log("WATCH", f"{m.vmip} idle > {IDLE_TIMEOUT}s, probing")
                 if not probe(m.vmip):
+                    log("WATCH", f"{m.vmip} dead, removing")
                     manager.remove_machine(m.vmip)
 
 
@@ -65,12 +69,13 @@ def command_loop(ipc, manager):
             cmd, opts = conn.recv()
             apply(manager, cmd, opts)
         except Exception as e:
-            print(f"command error: {e}")
+            log("CMD", f"error: {e}")
         finally:
             conn.close()
 
 
 def serve(ipc, first_cmd, first_opts):
+    log("SRV", "became singleton, serving")
     manager = Manager()
     stop_event = threading.Event()
     manager.on_empty = stop_event.set
@@ -81,7 +86,7 @@ def serve(ipc, first_cmd, first_opts):
     threading.Thread(target=command_loop, args=(ipc, manager), daemon=True).start()
 
     stop_event.wait()
-    print("GoodBye")
+    log("SRV", "GoodBye")
     try:
         ipc.close()
     except OSError:
@@ -96,9 +101,11 @@ def main():
     try:
         conn = Client(PIPE_ADDR, family="AF_PIPE")
     except (FileNotFoundError, OSError):
+        log("SRV", f"no live instance, starting; first cmd: {cmd} {opts}")
         ipc = IpcListener(PIPE_ADDR, family="AF_PIPE")
         serve(ipc, cmd, opts)
         return
+    log("SRV", f"forwarding to live instance: {cmd} {opts}")
     conn.send((cmd, opts))
     conn.close()
 

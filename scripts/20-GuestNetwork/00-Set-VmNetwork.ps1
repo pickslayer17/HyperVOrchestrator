@@ -1,5 +1,6 @@
 # guest network: static ip, dns, proxy (all levels), verify
 
+$RootPriviledges = $true
 $ScriptTarget = "VM"
 $ErrorActionPreference = "Stop"
 
@@ -20,6 +21,7 @@ if ($existing | Where-Object { $_.IPAddress -eq $vmIp }) {
         Where-Object { $_.PrefixOrigin -ne "WellKnown" } |
         ForEach-Object { Remove-NetIPAddress -IPAddress $_.IPAddress -Confirm:$false -ErrorAction SilentlyContinue }
     Remove-NetRoute -InterfaceAlias $ifAlias -Confirm:$false -ErrorAction SilentlyContinue
+    Set-NetIPInterface -InterfaceAlias $ifAlias -AddressFamily IPv4 -Dhcp Disabled
     New-NetIPAddress -InterfaceAlias $ifAlias -IPAddress $vmIp -PrefixLength $prefix -DefaultGateway $gateway
     Write-Host "IP set: $vmIp"
 }

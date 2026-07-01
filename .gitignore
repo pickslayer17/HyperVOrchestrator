@@ -16,5 +16,10 @@ obj/
 .vs
 Orchestrator.sln
 
+# Python
+__pycache__/
+*.pyc
+Python/log/
+
 # runtime artifacts (state, generated files)
 artifacts/

@@ -1,6 +1,8 @@
 import socket
 import select
 
+from netlog import log
+
 BUFFER_SIZE = 65536
 
 
@@ -16,15 +18,17 @@ class ProxyHandler:
             while b"\r\n" not in request:
                 chunk = client_sock.recv(BUFFER_SIZE)
                 if not chunk:
+                    log("PROXY", f"{addr[0]} closed before request")
                     return
                 request += chunk
 
             first_line = request.split(b"\r\n")[0].decode()
             parts = first_line.split()
             if len(parts) < 3:
+                log("PROXY", f"{addr[0]} bad request line: {first_line!r}")
                 return
             method, url, version = parts[0], parts[1], parts[2]
-            print(f"[{method}] {url}")
+            log("PROXY", f"{addr[0]} {method} {url}")
 
             while b"\r\n\r\n" not in request:
                 chunk = client_sock.recv(BUFFER_SIZE)
@@ -35,11 +39,11 @@ class ProxyHandler:
 
             if method == "CONNECT":
                 host, port = self._split_hostport(url, 443)
-                self._connect(client_sock, host, port)
+                self._connect(client_sock, addr, host, port)
             else:
-                self._http(client_sock, method, url, version, header_rest)
-        except Exception:
-            pass
+                self._http(client_sock, addr, method, url, version, header_rest)
+        except Exception as e:
+            log("PROXY", f"{addr[0]} error: {e}")
         finally:
             try:
                 client_sock.close()
@@ -52,18 +56,21 @@ class ProxyHandler:
             return h, int(p)
         return hostport, default_port
 
-    def _connect(self, client_sock, host, port):
+    def _connect(self, client_sock, addr, host, port):
         remote = None
         try:
             remote = socket.create_connection((host, port), timeout=10)
+            log("PROXY", f"{addr[0]} tunnel -> {host}:{port} open")
             client_sock.sendall(b"HTTP/1.1 200 Connection Established\r\n\r\n")
             self._splice(client_sock, remote)
-        except Exception:
+            log("PROXY", f"{addr[0]} tunnel -> {host}:{port} closed")
+        except Exception as e:
+            log("PROXY", f"{addr[0]} tunnel -> {host}:{port} FAILED: {e}")
             self._bad_gateway(client_sock)
         finally:
             self._close(remote)
 
-    def _http(self, client_sock, method, url, version, header_rest):
+    def _http(self, client_sock, addr, method, url, version, header_rest):
         remote = None
         try:
             no_scheme = url.split("://", 1)[1] if "://" in url else url
@@ -75,13 +82,16 @@ class ProxyHandler:
             host, port = self._split_hostport(hostport, 80)
 
             remote = socket.create_connection((host, port), timeout=10)
+            log("PROXY", f"{addr[0]} http -> {host}:{port} open")
             remote.sendall(f"{method} {path} {version}\r\n{header_rest}".encode())
             while True:
                 data = remote.recv(BUFFER_SIZE)
                 if not data:
                     break
                 client_sock.sendall(data)
-        except Exception:
+            log("PROXY", f"{addr[0]} http -> {host}:{port} done")
+        except Exception as e:
+            log("PROXY", f"{addr[0]} http -> {url} FAILED: {e}")
             self._bad_gateway(client_sock)
         finally:
             self._close(remote)
