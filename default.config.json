@@ -17,7 +17,8 @@
     "switchName": "NATSwitch",
     "natName": "VMNat",
     "dnsServer": "8.8.8.8",
-    "guestInterfaceAlias": "Ethernet"
+    "guestInterfaceAlias": "Ethernet",
+    "rdpPort": 3389
   },
   "paths": {
     "vmDir": "",
@@ -26,7 +27,8 @@
     "unattendXml": "",
     "officeArchive": "",
     "stateFile": "artifacts/state.json",
-    "dotnetInstallDir": "C:\\Program Files\\dotnet"
+    "dotnetInstallDir": "C:\\Program Files\\dotnet",
+    "pythonServer": "Python/server.py"
   },
   "dotnet": {
     "channel": "10.0",

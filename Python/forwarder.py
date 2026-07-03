@@ -19,10 +19,18 @@ class ForwardHandler:
             log("FWD", f"{addr[0]} -> {self.target_ip}:{self.target_port} FAILED: {e}")
             self._close(client_sock)
             return
-        threading.Thread(target=self._pump, args=(client_sock, remote), daemon=True).start()
-        threading.Thread(target=self._pump, args=(remote, client_sock), daemon=True).start()
 
-    def _pump(self, src, dst):
+        t1 = threading.Thread(target=self._pipe, args=(client_sock, remote), daemon=True)
+        t2 = threading.Thread(target=self._pipe, args=(remote, client_sock), daemon=True)
+        t1.start()
+        t2.start()
+        t1.join()
+        t2.join()
+        self._close(client_sock)
+        self._close(remote)
+        log("FWD", f"{addr[0]} -> {self.target_ip}:{self.target_port} closed")
+
+    def _pipe(self, src, dst):
         try:
             while True:
                 data = src.recv(BUFFER_SIZE)
@@ -32,8 +40,10 @@ class ForwardHandler:
         except OSError:
             pass
         finally:
-            self._close(src)
-            self._close(dst)
+            try:
+                dst.shutdown(socket.SHUT_WR)
+            except OSError:
+                pass
 
     def _close(self, sock):
         try:

@@ -1,13 +1,13 @@
 import sys
 import threading
-import time
 from multiprocessing.connection import Listener as IpcListener, Client
 
 from manager import Manager
+from watcher import Watcher
 from netlog import log
 
 PIPE_ADDR = r"\\.\pipe\hyperv-netagent"
-IDLE_TIMEOUT = 300
+WATCH_INTERVAL = 10
 
 
 def parse(argv):
@@ -32,31 +32,21 @@ def apply(manager, cmd, opts):
     log("CMD", f"{cmd} {opts}")
     if cmd == "Start-Proxy":
         manager.start_proxy(opts["ip"], opts["port"])
-    elif cmd == "AddMachine":
+        return "ok"
+    if cmd == "AddMachine":
         manager.add_machine(opts["vmip"])
-    elif cmd == "Set-ForwardPort":
+        return "ok"
+    if cmd == "Set-ForwardPort":
         listen = opts.get("listenport") or opts.get("portadress")
         target = opts.get("targetport") or listen
         manager.set_forward_port(opts["vmip"], listen, target)
-    elif cmd == "RemoveMachine":
+        return "ok"
+    if cmd == "RemoveMachine":
         manager.remove_machine(opts["vmip"])
-    else:
-        raise ValueError(f"unknown command: {cmd}")
-
-
-def probe(vmip):
-    return True
-
-
-def watcher(manager):
-    while True:
-        time.sleep(IDLE_TIMEOUT)
-        for m in manager.snapshot():
-            if m.last_seen and (time.time() - m.last_seen) > IDLE_TIMEOUT:
-                log("WATCH", f"{m.vmip} idle > {IDLE_TIMEOUT}s, probing")
-                if not probe(m.vmip):
-                    log("WATCH", f"{m.vmip} dead, removing")
-                    manager.remove_machine(m.vmip)
+        return "ok"
+    if cmd == "GetMachineNames":
+        return manager.machine_names()
+    raise ValueError(f"unknown command: {cmd}")
 
 
 def command_loop(ipc, manager):
@@ -67,9 +57,14 @@ def command_loop(ipc, manager):
             break
         try:
             cmd, opts = conn.recv()
-            apply(manager, cmd, opts)
+            resp = apply(manager, cmd, opts)
+            conn.send(("ok", resp))
         except Exception as e:
             log("CMD", f"error: {e}")
+            try:
+                conn.send(("error", str(e)))
+            except OSError:
+                pass
         finally:
             conn.close()
 
@@ -82,7 +77,7 @@ def serve(ipc, first_cmd, first_opts):
 
     apply(manager, first_cmd, first_opts)
 
-    threading.Thread(target=watcher, args=(manager,), daemon=True).start()
+    Watcher(manager, interval=WATCH_INTERVAL).start()
     threading.Thread(target=command_loop, args=(ipc, manager), daemon=True).start()
 
     stop_event.wait()
@@ -98,16 +93,32 @@ def main():
     if not cmd:
         print("usage: server.py <Command> [-flag value ...]")
         return
+
     try:
         conn = Client(PIPE_ADDR, family="AF_PIPE")
     except (FileNotFoundError, OSError):
-        log("SRV", f"no live instance, starting; first cmd: {cmd} {opts}")
-        ipc = IpcListener(PIPE_ADDR, family="AF_PIPE")
-        serve(ipc, cmd, opts)
+        conn = None
+
+    if conn is None:
+        if cmd == "Start-Proxy":
+            log("SRV", f"no live instance, starting; first cmd: {cmd} {opts}")
+            ipc = IpcListener(PIPE_ADDR, family="AF_PIPE")
+            serve(ipc, cmd, opts)
+        else:
+            print("ERROR: no live server")
+            sys.exit(1)
         return
-    log("SRV", f"forwarding to live instance: {cmd} {opts}")
+
     conn.send((cmd, opts))
+    status, payload = conn.recv()
     conn.close()
+    if cmd == "GetMachineNames":
+        if status == "ok" and payload:
+            for name in payload:
+                print(name)
+    elif status == "error":
+        print(f"ERROR: {payload}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,4 @@
 import threading
-import time
 
 from listener import Listener
 from proxy import ProxyHandler
@@ -11,7 +10,7 @@ class Machine:
     def __init__(self, vmip):
         self.vmip = vmip
         self.forward = None
-        self.last_seen = None
+        self.target_port = None
 
 
 class Manager:
@@ -26,7 +25,7 @@ class Manager:
         with self._lock:
             if self._proxy:
                 self._proxy.stop()
-            self._proxy = Listener(ip, port, ProxyHandler(self._touch), name="proxy")
+            self._proxy = Listener(ip, port, ProxyHandler(), name="proxy")
             self._proxy.start()
         log("MGR", f"proxy started {ip}:{port}")
 
@@ -45,6 +44,7 @@ class Manager:
             m = self._machines.setdefault(vmip, Machine(vmip))
             if m.forward:
                 m.forward.stop()
+            m.target_port = int(target_port)
             m.forward = Listener(self.forward_bind_ip, listen_port,
                                  ForwardHandler(vmip, target_port), name=f"fwd:{vmip}")
             m.forward.start()
@@ -60,12 +60,10 @@ class Manager:
         if empty and self.on_empty:
             self.on_empty()
 
+    def machine_names(self):
+        with self._lock:
+            return list(self._machines.keys())
+
     def snapshot(self):
         with self._lock:
             return list(self._machines.values())
-
-    def _touch(self, src_ip):
-        with self._lock:
-            m = self._machines.get(src_ip)
-            if m:
-                m.last_seen = time.time()

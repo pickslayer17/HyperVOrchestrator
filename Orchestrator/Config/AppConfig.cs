@@ -53,6 +53,7 @@ internal sealed class NetworkConfig
     public int Prefix { get; init; }
     public int ProxyPort { get; init; }
     public int RdpForwardPort { get; init; }
+    public int RdpPort { get; init; }
     public string DnsServer { get; init; } = "";
     public string GuestInterfaceAlias { get; init; } = "";
 }
@@ -66,6 +67,7 @@ internal sealed class PathsConfig
     public string OfficeArchive { get; set; } = "";
     public string StateFile { get; set; } = "";
     public string DotnetInstallDir { get; init; } = "";
+    public string PythonServer { get; set; } = "";
 
     public void ResolveAgainst(string repoRoot)
     {
@@ -74,6 +76,7 @@ internal sealed class PathsConfig
         UnattendXml = Resolve(repoRoot, UnattendXml);
         OfficeArchive = Resolve(repoRoot, OfficeArchive);
         StateFile = Resolve(repoRoot, StateFile);
+        PythonServer = Resolve(repoRoot, PythonServer);
     }
 
     private static string Resolve(string repoRoot, string path)
