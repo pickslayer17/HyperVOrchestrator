@@ -10,19 +10,17 @@ $vmIp      = "@@state.vmIp@@"
 $fwdPort   = @@state.rdpForwardPort@@
 $rdpPort   = @@network.rdpPort@@
 
-function Test-AgentPipe {
-    [bool](([System.IO.Directory]::GetFiles("\\.\pipe\")) -match 'hyperv-netagent')
+function Test-AgentLive {
+    & python "$server" GetMachineNames > $null 2>&1
+    return ($LASTEXITCODE -eq 0)
 }
 
-# ensure singleton server
-if (Test-AgentPipe) {
+# ensure singleton server (server self-detaches; Start-Proxy waits until live)
+if (Test-AgentLive) {
     Write-Host "proxy server already running."
 } else {
-    Start-Process -FilePath "python" -WindowStyle Hidden `
-        -ArgumentList "`"$server`"", "Start-Proxy", "-ip", $hostIp, "-port", $proxyPort
-    $deadline = (Get-Date).AddSeconds(15)
-    while (-not (Test-AgentPipe) -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 200 }
-    if (-not (Test-AgentPipe)) { throw "proxy server did not start (no pipe)" }
+    & python "$server" Start-Proxy -ip $hostIp -port $proxyPort
+    if (-not (Test-AgentLive)) { throw "proxy server did not start" }
     Write-Host "proxy server started."
 }
 

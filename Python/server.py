@@ -1,5 +1,8 @@
 import sys
+import os
+import time
 import threading
+import subprocess
 from multiprocessing.connection import Listener as IpcListener, Client
 
 from manager import Manager
@@ -8,6 +11,18 @@ from netlog import log
 
 PIPE_ADDR = r"\\.\pipe\hyperv-netagent"
 WATCH_INTERVAL = 10
+
+DETACHED_PROCESS = 0x00000008
+CREATE_NEW_PROCESS_GROUP = 0x00000200
+
+HELP = """hyperv-netagent - commands:
+  Start-Proxy      -ip <ip> -port <port>
+  AddMachine       -vmip <ip>
+  Set-ForwardPort  -vmip <ip> -portadress <listenPort> [-targetport <port>]
+  RemoveMachine    -vmip <ip>
+  GetMachineNames
+  Quit
+  help"""
 
 
 def parse(argv):
@@ -49,7 +64,7 @@ def apply(manager, cmd, opts):
     raise ValueError(f"unknown command: {cmd}")
 
 
-def command_loop(ipc, manager):
+def command_loop(ipc, manager, stop_event):
     while True:
         try:
             conn = ipc.accept()
@@ -57,6 +72,11 @@ def command_loop(ipc, manager):
             break
         try:
             cmd, opts = conn.recv()
+            if cmd == "Quit":
+                conn.send(("ok", "stopping"))
+                log("SRV", "Quit received, shutting down")
+                stop_event.set()
+                return
             resp = apply(manager, cmd, opts)
             conn.send(("ok", resp))
         except Exception as e:
@@ -66,7 +86,10 @@ def command_loop(ipc, manager):
             except OSError:
                 pass
         finally:
-            conn.close()
+            try:
+                conn.close()
+            except OSError:
+                pass
 
 
 def serve(ipc, first_cmd, first_opts):
@@ -78,7 +101,7 @@ def serve(ipc, first_cmd, first_opts):
     apply(manager, first_cmd, first_opts)
 
     Watcher(manager, interval=WATCH_INTERVAL).start()
-    threading.Thread(target=command_loop, args=(ipc, manager), daemon=True).start()
+    threading.Thread(target=command_loop, args=(ipc, manager, stop_event), daemon=True).start()
 
     stop_event.wait()
     log("SRV", "GoodBye")
@@ -88,11 +111,54 @@ def serve(ipc, first_cmd, first_opts):
         pass
 
 
+def spawn_detached(ip, port):
+    args = [sys.executable, os.path.abspath(__file__), "_Serve", "-ip", str(ip), "-port", str(port)]
+    subprocess.Popen(
+        args,
+        creationflags=DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        close_fds=True,
+    )
+
+
+def is_live():
+    try:
+        conn = Client(PIPE_ADDR, family="AF_PIPE")
+        conn.send(("GetMachineNames", {}))
+        conn.recv()
+        conn.close()
+        return True
+    except OSError:
+        return False
+
+
+def wait_live(timeout=10):
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if is_live():
+            return True
+        time.sleep(0.2)
+    return False
+
+
 def main():
     cmd, opts = parse(sys.argv[1:])
-    if not cmd:
-        print("usage: server.py <Command> [-flag value ...]")
+    if not cmd or cmd.lower() in ("help", "-h", "--help"):
+        print(HELP)
         return
+
+    if cmd == "_Serve":
+        ipc = IpcListener(PIPE_ADDR, family="AF_PIPE")
+        serve(ipc, "Start-Proxy", opts)
+        return
+
+    if cmd == "Quit":
+        ans = input("are you sure? y/n: ").strip().lower()
+        if ans != "y":
+            print("cancelled")
+            return
 
     try:
         conn = Client(PIPE_ADDR, family="AF_PIPE")
@@ -101,9 +167,13 @@ def main():
 
     if conn is None:
         if cmd == "Start-Proxy":
-            log("SRV", f"no live instance, starting; first cmd: {cmd} {opts}")
-            ipc = IpcListener(PIPE_ADDR, family="AF_PIPE")
-            serve(ipc, cmd, opts)
+            log("SRV", f"no live instance, spawning detached server: {opts}")
+            spawn_detached(opts["ip"], opts["port"])
+            if wait_live(10):
+                print("proxy server started (detached).")
+            else:
+                print("ERROR: proxy server did not come up")
+                sys.exit(1)
         else:
             print("ERROR: no live server")
             sys.exit(1)
@@ -116,6 +186,8 @@ def main():
         if status == "ok" and payload:
             for name in payload:
                 print(name)
+    elif cmd == "Quit":
+        print("server stopping.")
     elif status == "error":
         print(f"ERROR: {payload}")
         sys.exit(1)
