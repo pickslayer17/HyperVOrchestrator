@@ -9,7 +9,7 @@ internal static class Program
     private static int Main(string[] arguments)
     {
         var repoRoot = FindRepoRoot();
-        var scriptsDir = Path.Combine(repoRoot, "scripts");
+        var scriptsDir = Path.Combine(repoRoot, "scripts", "VM");
         var config = AppConfig.Load(repoRoot);
 
         if (arguments.Length > 0)
@@ -35,7 +35,7 @@ internal static class Program
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
         while (directory is not null)
         {
-            var scriptsPath = Path.Combine(directory.FullName, "scripts");
+            var scriptsPath = Path.Combine(directory.FullName, "scripts", "VM");
             if (Directory.Exists(scriptsPath))
                 return directory.FullName;
             directory = directory.Parent;
