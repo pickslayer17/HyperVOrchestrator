@@ -14,11 +14,11 @@ internal sealed class Orchestrator
     private readonly ConsoleModelViewer _viewer;
     private readonly Logger _logger;
 
-    public Orchestrator(AppConfig config, string repoRoot, string scriptsDir)
+    public Orchestrator(AppConfig config, string repoRoot, string scriptsRoot, string vmSuitesDir)
     {
-        _runManager = new RunScriptManager(config, repoRoot);
+        _runManager = new RunScriptManager(config, scriptsRoot);
         var factory = new ScriptModelFactory();
-        _model = factory.Create(scriptsDir);
+        _model = factory.Create(vmSuitesDir);
         _viewer = new ConsoleModelViewer(this, _model);
         _logger = new Logger(repoRoot);
     }

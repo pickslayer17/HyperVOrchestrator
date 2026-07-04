@@ -6,26 +6,31 @@ namespace Orchestrator;
 
 internal static class Program
 {
+    private const string RepoRootMarker = "default.config.json";
+    private const string ScriptsFolder = "scripts";
+    private const string VmSuitesFolder = "VM";
+
     private static int Main(string[] arguments)
     {
         var repoRoot = FindRepoRoot();
-        var scriptsDir = Path.Combine(repoRoot, "scripts", "VM");
+        var scriptsRoot = Path.Combine(repoRoot, ScriptsFolder);
+        var vmSuitesDir = Path.Combine(scriptsRoot, VmSuitesFolder);
         var config = AppConfig.Load(repoRoot);
 
         if (arguments.Length > 0)
         {
-            var exitCode = RunHeadless(config, repoRoot, arguments[0]);
+            var exitCode = RunHeadless(config, scriptsRoot, arguments[0]);
             return exitCode;
         }
 
-        var orchestrator = new App.Orchestrator(config, repoRoot, scriptsDir);
+        var orchestrator = new App.Orchestrator(config, repoRoot, scriptsRoot, vmSuitesDir);
         orchestrator.Start();
         return 0;
     }
 
-    private static int RunHeadless(AppConfig config, string repoRoot, string scriptPath)
+    private static int RunHeadless(AppConfig config, string scriptsRoot, string scriptPath)
     {
-        var runManager = new RunScriptManager(config, repoRoot);
+        var runManager = new RunScriptManager(config, scriptsRoot);
         var result = runManager.ExecuteFileScript(scriptPath, Console.WriteLine);
         return result.ExitCode;
     }
@@ -35,11 +40,10 @@ internal static class Program
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
         while (directory is not null)
         {
-            var scriptsPath = Path.Combine(directory.FullName, "scripts", "VM");
-            if (Directory.Exists(scriptsPath))
+            if (File.Exists(Path.Combine(directory.FullName, RepoRootMarker)))
                 return directory.FullName;
             directory = directory.Parent;
         }
-        throw new InvalidOperationException("Repo root not found (no 'scripts' folder above the exe).");
+        throw new InvalidOperationException($"Repo root not found (no '{RepoRootMarker}' above the exe).");
     }
 }

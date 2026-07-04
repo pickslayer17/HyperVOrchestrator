@@ -7,11 +7,11 @@ internal sealed class InjectDecorator : IScriptDecorator
 {
     private const string InjectPattern = @"<<inject::([^>]+)>>";
 
-    private readonly string _repoRoot;
+    private readonly string _scriptsRoot;
 
-    public InjectDecorator(string repoRoot)
+    public InjectDecorator(string scriptsRoot)
     {
-        _repoRoot = repoRoot;
+        _scriptsRoot = scriptsRoot;
     }
 
     public string Format(string script)
@@ -23,7 +23,7 @@ internal sealed class InjectDecorator : IScriptDecorator
     private string ResolveInject(Match match)
     {
         var relative = match.Groups[1].Value.Trim();
-        var fullPath = Path.Combine(_repoRoot, relative.Replace('/', Path.DirectorySeparatorChar));
+        var fullPath = Path.Combine(_scriptsRoot, relative.Replace('/', Path.DirectorySeparatorChar));
         var content = FileHelper.ReadText(fullPath);
         return content;
     }

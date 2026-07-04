@@ -11,11 +11,11 @@ internal sealed class PreScriptProcessor
     private readonly RootPriviledgeWrapDecorator _rootPriviledgeWrapDecorator;
     private readonly TargetWrapDecorator _targetWrapDecorator;
 
-    public PreScriptProcessor(string repoRoot, AppConfig config, StateKeeper stateKeeper, PowerShellHost host)
+    public PreScriptProcessor(string scriptsRoot, AppConfig config, StateKeeper stateKeeper, PowerShellHost host)
     {
         var configValues = ConfigFlattener.Flatten(config);
         _versionDecorator = new VersionDecorator(host.MajorVersion);
-        _injectDecorator = new InjectDecorator(repoRoot);
+        _injectDecorator = new InjectDecorator(scriptsRoot);
         _interpolateDecorator = new InterpolateDecorator(configValues, stateKeeper);
         _rootPriviledgeWrapDecorator = new RootPriviledgeWrapDecorator();
         _targetWrapDecorator = new TargetWrapDecorator(config.Vm.Name, config.Credentials.User, config.Credentials.Password);
