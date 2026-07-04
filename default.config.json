@@ -17,8 +17,7 @@
     "switchName": "",
     "natName": "",
     "dnsServer": "8.8.8.8",
-    "guestInterfaceAlias": "Ethernet",
-    "rdpPort": 3389
+    "subnetPrefixLength": 24
   },
   "paths": {
     "vmDir": "",

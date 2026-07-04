@@ -4,13 +4,13 @@ $RootPriviledges = $true
 $ScriptTarget = "VM"
 $ErrorActionPreference = "Stop"
 
-$vmIp          = "@@state.vmIp@@"
-$prefix        = @@state.prefix@@
-$gateway       = "@@state.hostIp@@"
+$vmIp          = "@@state.vm.ip@@"
+$prefix        =  @@network.subnetPrefixLength@@
+$gateway       = "@@state.host.natIp@@"
 $dns           = "@@network.dnsServer@@"
-$proxyHostPort = "@@state.hostIp@@:@@state.proxyPort@@"
+$proxyHostPort = "@@state.host.natIp@@:@@state.host.proxyPort@@"
 $vmUser        = "@@credentials.user@@"
-$ifAlias       = "@@network.guestInterfaceAlias@@"
+$ifAlias       = "@@state.vm.interfaceAlias@@"
 
 # static ip
 $existing = Get-NetIPAddress -InterfaceAlias $ifAlias -AddressFamily IPv4 -ErrorAction SilentlyContinue
@@ -29,6 +29,10 @@ if ($existing | Where-Object { $_.IPAddress -eq $vmIp }) {
 # dns
 Set-DnsClientServerAddress -InterfaceAlias $ifAlias -ServerAddresses $dns
 Write-Host "DNS set: $dns"
+
+# real rdp port this guest listens on -> state (host uses it as forward target)
+$vmRdpPort = (Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name PortNumber).PortNumber
+Write-Host "<<set::state.vm.rdpPort=$vmRdpPort>>"
 
 # proxy: system (winhttp)
 netsh winhttp set proxy "$proxyHostPort"

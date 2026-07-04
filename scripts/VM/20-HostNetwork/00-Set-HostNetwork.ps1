@@ -5,8 +5,8 @@ $ErrorActionPreference = "Stop"
 
 $switchName = "@@network.switchName@@"
 $natName    = "@@network.natName@@"
-$hostIp     = "@@state.hostIp@@"
-$prefix     = @@state.prefix@@
+$hostIp     = "@@state.host.natIp@@"
+$prefix     = @@network.subnetPrefixLength@@
 $vmName     = "@@vm.name@@"
 
 $octets = $hostIp.Split('.')
@@ -47,5 +47,4 @@ if ($adapter -and $adapter.SwitchName -ne $switchName) {
     Write-Host "VM connected to $switchName."
 }
 
-Write-Host "<<set::state.hostSwitchIfIndex=$ifIndex>>"
 Write-Host "Host network ready."

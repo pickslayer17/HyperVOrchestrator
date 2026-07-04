@@ -48,14 +48,8 @@ internal sealed class NetworkConfig
 {
     public string SwitchName { get; init; } = "";
     public string NatName { get; init; } = "";
-    public string HostIp { get; init; } = "";
-    public string VmIp { get; init; } = "";
-    public int Prefix { get; init; }
-    public int ProxyPort { get; init; }
-    public int RdpForwardPort { get; init; }
-    public int RdpPort { get; init; }
+    public int SubnetPrefixLength { get; init; }
     public string DnsServer { get; init; } = "";
-    public string GuestInterfaceAlias { get; init; } = "";
 }
 
 internal sealed class PathsConfig

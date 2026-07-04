@@ -4,7 +4,7 @@ $ScriptTarget = "Host"
 $ErrorActionPreference = "Stop"
 
 $vmName = "@@vm.name@@"
-$hostIp = "@@state.hostIp@@"
+$hostIp = "@@state.host.natIp@@"
 $octets = $hostIp.Split('.')
 $base   = "$($octets[0]).$($octets[1]).$($octets[2])."
 
@@ -31,6 +31,6 @@ if (-not $vmIp) {
 }
 if (-not $vmIp) { Write-Host "No free IP in subnet ${base}0/24."; exit 1 }
 
-Write-Host "<<set::state.vmIp=$vmIp>>"
+Write-Host "<<set::state.vm.ip=$vmIp>>"
 Write-Host "VM IP: $vmIp (taken: $($taken -join ', '))"
 exit 0

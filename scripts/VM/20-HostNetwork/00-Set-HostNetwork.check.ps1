@@ -7,10 +7,6 @@ $switchName = "@@network.switchName@@"
 $natName    = "@@network.natName@@"
 $vmName     = "@@vm.name@@"
 
-$desiredPrefix    = 24
-$desiredProxyPort = 3128
-$desiredRdpPort   = 13389
-
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
     ).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) { Write-Host "Not running as Administrator."; exit 1 }
@@ -24,21 +20,20 @@ $hostIpObj = Get-NetIPAddress -InterfaceAlias "vEthernet ($switchName)" -Address
 $adapter   = Get-VMNetworkAdapter -VMName $vmName -ErrorAction SilentlyContinue
 $onSwitch  = $adapter -and ($adapter.SwitchName -eq $switchName)
 
-# free ports (bump if taken)
-$listening = @((Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue).LocalPort)
-function Find-FreePort([int]$start) {
-    $p = $start
-    while ($listening -contains $p) { $p++ }
-    return $p
+# ports: let the OS hand us free ephemeral ports (it never returns an occupied one)
+function Get-FreePort {
+    $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Any, 0)
+    $listener.Start()
+    $port = ([System.Net.IPEndPoint]$listener.LocalEndpoint).Port
+    $listener.Stop()
+    return $port
 }
-Write-Host "<<set::state.proxyPort=$(Find-FreePort $desiredProxyPort)>>"
-Write-Host "<<set::state.rdpForwardPort=$(Find-FreePort $desiredRdpPort)>>"
+Write-Host "<<set::state.host.proxyPort=$(Get-FreePort)>>"
+Write-Host "<<set::state.vm.hostRdpForwardPort=$(Get-FreePort)>>"
 
 # gateway ip: record existing, or pick a free .1 for a new switch
 if ($hostIpObj) {
-    Write-Host "<<set::state.hostIp=$($hostIpObj.IPAddress)>>"
-    Write-Host "<<set::state.prefix=$($hostIpObj.PrefixLength)>>"
-    Write-Host "<<set::state.hostSwitchIfIndex=$($hostIpObj.InterfaceIndex)>>"
+    Write-Host "<<set::state.host.natIp=$($hostIpObj.IPAddress)>>"
 } else {
     $gw = $null
     foreach ($third in 50..99) {
@@ -49,8 +44,7 @@ if ($hostIpObj) {
         }
     }
     if (-not $gw) { Write-Host "No free gateway IP found."; exit 1 }
-    Write-Host "<<set::state.hostIp=$gw>>"
-    Write-Host "<<set::state.prefix=$desiredPrefix>>"
+    Write-Host "<<set::state.host.natIp=$gw>>"
 }
 
 # done only if infra exists AND this vm is on the switch

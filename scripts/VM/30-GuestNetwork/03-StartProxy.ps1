@@ -4,11 +4,11 @@ $ScriptTarget = "Host"
 $ErrorActionPreference = "Stop"
 
 $server    = "@@paths.pythonServer@@"
-$hostIp    = "@@state.hostIp@@"
-$proxyPort = @@state.proxyPort@@
-$vmIp      = "@@state.vmIp@@"
-$fwdPort   = @@state.rdpForwardPort@@
-$rdpPort   = @@network.rdpPort@@
+$hostIp    = "@@state.host.natIp@@"
+$proxyPort = @@state.host.proxyPort@@
+$vmIp      = "@@state.vm.ip@@"
+$vmHostRdpForwardPort = @@state.vm.hostRdpForwardPort@@
+$vmRdpPort            = @@state.vm.rdpPort@@
 
 function Test-AgentLive {
     & python "$server" GetMachineNames > $null 2>&1
@@ -30,6 +30,6 @@ if ($names -contains $vmIp) {
     Write-Host "$vmIp already registered."
 } else {
     & python "$server" AddMachine -vmip $vmIp
-    & python "$server" Set-ForwardPort -vmip $vmIp -portadress $fwdPort -targetport $rdpPort
-    Write-Host "$vmIp registered: proxy + forward $fwdPort -> ${vmIp}:$rdpPort."
+    & python "$server" Set-ForwardPort -vmip $vmIp -portadress $vmHostRdpForwardPort -targetport $vmRdpPort
+    Write-Host "$vmIp registered: proxy + forward $vmHostRdpForwardPort -> ${vmIp}:$vmRdpPort."
 }
