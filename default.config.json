@@ -1,7 +1,7 @@
 {
   "vm": {
-    "name": "TestRunner2",
-    "host": "localhost",
+    "name": "",
+    "host": "",
     "memoryGb": "4GB",
     "cpuCount": 4,
     "diskSizeGb": "40GB",
@@ -14,8 +14,8 @@
     "password": ""
   },
   "network": {
-    "switchName": "NATSwitch",
-    "natName": "VMNat",
+    "switchName": "",
+    "natName": "",
     "dnsServer": "8.8.8.8",
     "guestInterfaceAlias": "Ethernet",
     "rdpPort": 3389
