@@ -6,16 +6,16 @@ namespace Orchestrator;
 
 internal static class Program
 {
+    public readonly static string RepoRoot = FindRepoRoot();
     private const string RepoRootMarker = "default.config.json";
     private const string ScriptsFolder = "scripts";
     private const string VmSuitesFolder = "VM";
 
     private static int Main(string[] arguments)
     {
-        var repoRoot = FindRepoRoot();
-        var scriptsRoot = Path.Combine(repoRoot, ScriptsFolder);
+        var scriptsRoot = Path.Combine(RepoRoot, ScriptsFolder);
         var vmSuitesDir = Path.Combine(scriptsRoot, VmSuitesFolder);
-        var config = AppConfig.Load(repoRoot);
+        var config = AppConfig.Load(RepoRoot);
 
         if (arguments.Length > 0)
         {
@@ -23,7 +23,7 @@ internal static class Program
             return exitCode;
         }
 
-        var orchestrator = new App.Orchestrator(config, repoRoot, scriptsRoot, vmSuitesDir);
+        var orchestrator = new App.Orchestrator(config, scriptsRoot, vmSuitesDir);
         orchestrator.Start();
         return 0;
     }

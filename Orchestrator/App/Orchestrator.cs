@@ -9,23 +9,36 @@ internal sealed class Orchestrator
     private const int CheckRunMain = 0;
     private const int CheckAlreadyDone = 2;
 
+    private readonly AppConfig _config;
+    private readonly string _scriptsRoot;
     private readonly RunScriptManager _runManager;
     private readonly ScriptModel _model;
     private readonly ConsoleModelViewer _viewer;
     private readonly Logger _logger;
+    private HostInfo _hostInfo = new();
 
-    public Orchestrator(AppConfig config, string repoRoot, string scriptsRoot, string vmSuitesDir)
+    public Orchestrator(AppConfig config, string scriptsRoot, string vmSuitesDir)
     {
+        _config = config;
+        _scriptsRoot = scriptsRoot;
         _runManager = new RunScriptManager(config, scriptsRoot);
         var factory = new ScriptModelFactory();
         _model = factory.Create(vmSuitesDir);
         _viewer = new ConsoleModelViewer(this, _model);
-        _logger = new Logger(repoRoot);
+        _logger = new Logger();
     }
 
     public void Start()
     {
+        RunInitialization();
         _viewer.Draw();
+    }
+
+    private void RunInitialization()
+    {
+        var initRunManager = new RunScriptManager(_config, _scriptsRoot);
+        var initializer = new Initializer(initRunManager);
+        _hostInfo = initializer.Run(Console.WriteLine);
     }
 
     public void Run(IScriptNode node)

@@ -5,8 +5,9 @@ internal sealed class Logger
     private readonly string _logPath;
     private string _context = "";
 
-    public Logger(string repoRoot)
+    public Logger()
     {
+        var repoRoot = Program.RepoRoot;
         var logsDir = Path.Combine(repoRoot, "artifacts", "logs");
         Directory.CreateDirectory(logsDir);
         var fileName = $"run-{DateTime.Now:yyyy-MM-dd-HHmmss}.log";
