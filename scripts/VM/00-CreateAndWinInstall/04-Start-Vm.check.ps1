@@ -3,7 +3,7 @@
 $ScriptTarget = "Host"
 $ErrorActionPreference = "Stop"
 
-$vmName = "@@vm.name@@"
+$vmName = "@@state.vm.name@@"
 
 if (-not (Get-VM -Name $vmName -ErrorAction SilentlyContinue)) { Write-Host "VM '$vmName' not found (run 02-Create-Vm first)."; exit 1 }
 

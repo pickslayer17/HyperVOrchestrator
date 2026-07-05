@@ -2,7 +2,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace Orchestrator.Config;
 
-internal sealed class AppConfig
+public class AppConfig
 {
     public VmConfig Vm { get; init; } = new();
     public CredentialsConfig Credentials { get; init; } = new();
@@ -26,7 +26,7 @@ internal sealed class AppConfig
     }
 }
 
-internal sealed class VmConfig
+public sealed class VmConfig
 {
     public string Name { get; init; } = "";
     public string Host { get; init; } = "";
@@ -38,13 +38,13 @@ internal sealed class VmConfig
     public string TimeZone { get; init; } = "";
 }
 
-internal sealed class CredentialsConfig
+public sealed class CredentialsConfig
 {
     public string User { get; init; } = "";
     public string Password { get; init; } = "";
 }
 
-internal sealed class NetworkConfig
+public sealed class NetworkConfig
 {
     public string SwitchName { get; init; } = "";
     public string NatName { get; init; } = "";
@@ -52,7 +52,7 @@ internal sealed class NetworkConfig
     public string DnsServer { get; init; } = "";
 }
 
-internal sealed class PathsConfig
+public sealed class PathsConfig
 {
     public string VmDir { get; set; } = "";
     public string WindowsIso { get; set; } = "";
@@ -82,14 +82,14 @@ internal sealed class PathsConfig
     }
 }
 
-internal sealed class DotnetConfig
+public sealed class DotnetConfig
 {
     public string Channel { get; init; } = "";
     public string Quality { get; init; } = "";
     public string InstallScriptUrl { get; init; } = "";
 }
 
-internal sealed class FlauiConfig
+public sealed class FlauiConfig
 {
     public string ProjectName { get; init; } = "";
     public string BaseFramework { get; init; } = "";
@@ -97,7 +97,7 @@ internal sealed class FlauiConfig
     public string Package { get; init; } = "";
 }
 
-internal sealed class OfficeConfig
+public sealed class OfficeConfig
 {
     public string Channel { get; init; } = "";
     public string Edition { get; init; } = "";

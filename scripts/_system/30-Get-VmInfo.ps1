@@ -3,8 +3,8 @@
 $ScriptTarget = "Host"
 $ErrorActionPreference = "Stop"
 
-$vmName     = "@@state.currentVm@@"
-$switchName = "@@network.switchName@@"
+$vmName     = "@@state.vm.name@@"
+$switchName = "@@state.host.switchName@@"
 $vmUser     = "@@credentials.user@@"
 $vmPass     = "@@credentials.password@@"
 

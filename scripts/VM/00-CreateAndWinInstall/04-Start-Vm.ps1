@@ -3,7 +3,7 @@
 $ScriptTarget = "Host"
 $ErrorActionPreference = "Stop"
 
-$vmName = "@@vm.name@@"
+$vmName = "@@state.vm.name@@"
 $vmHost = "@@vm.host@@"
 
 Write-Host "Starting VM..."

@@ -1,50 +1,66 @@
-using System.Text.Json;
+using System.Reflection;
+using Orchestrator.Models;
 
 namespace Orchestrator.Core;
 
+// Holds the live host/vm models (draft: no json file yet). Always works over
+// one CurrentHost and one CurrentVm. Resolves state.host.X / state.vm.X by
+// reflecting the property named X off the current model. Flat <<set::>> pairs
+// still land in a string map for anything that isn't a model field.
 internal sealed class StateKeeper
 {
-    private readonly string _path;
-    private readonly Dictionary<string, string> _state;
+    private readonly List<HostInfo> _hosts = new();
+    private readonly Dictionary<string, string> _flat = new(StringComparer.OrdinalIgnoreCase);
 
-    public StateKeeper(string path)
+    public HostInfo? CurrentHost { get; private set; }
+    public VmInfo? CurrentVm { get; private set; }
+
+    public HostInfo NewHost()
     {
-        _path = path;
-        _state = Load();
+        var host = new HostInfo();
+        _hosts.Add(host);
+        CurrentHost = host;
+        return host;
+    }
+
+    public void SetCurrentVm(string name)
+    {
+        if (CurrentHost is not null && CurrentHost.Vms.TryGetValue(name, out var vm))
+            CurrentVm = vm;
     }
 
     public bool TryGet(string key, out string value)
     {
-        var found = _state.TryGetValue(key, out var stored);
-        value = stored ?? "";
-        return found;
+        value = "";
+
+        if (key.StartsWith("state.host.", StringComparison.OrdinalIgnoreCase))
+            return TryReflect(CurrentHost, key.Substring("state.host.".Length), out value);
+        if (key.StartsWith("state.vm.", StringComparison.OrdinalIgnoreCase))
+            return TryReflect(CurrentVm, key.Substring("state.vm.".Length), out value);
+
+        if (_flat.TryGetValue(key, out var stored))
+        {
+            value = stored ?? "";
+            return true;
+        }
+        return false;
     }
 
     public void Set(string key, string value)
     {
-        _state[key] = value;
-        Save();
+        _flat[key] = value;
     }
 
-    private Dictionary<string, string> Load()
+    private static bool TryReflect(object? model, string propName, out string value)
     {
-        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        if (!File.Exists(_path))
-            return map;
-
-        var text = File.ReadAllText(_path);
-        using var document = JsonDocument.Parse(text);
-        foreach (var property in document.RootElement.EnumerateObject())
-            map[property.Name] = property.Value.ToString();
-        return map;
-    }
-
-    private void Save()
-    {
-        var directory = Path.GetDirectoryName(_path)!;
-        Directory.CreateDirectory(directory);
-        var options = new JsonSerializerOptions { WriteIndented = true };
-        var json = JsonSerializer.Serialize(_state, options);
-        File.WriteAllText(_path, json);
+        value = "";
+        if (model is null)
+            return false;
+        var prop = model.GetType().GetProperty(propName,
+            BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+        if (prop is null)
+            return false;
+        value = prop.GetValue(model)?.ToString() ?? "";
+        return true;
     }
 }

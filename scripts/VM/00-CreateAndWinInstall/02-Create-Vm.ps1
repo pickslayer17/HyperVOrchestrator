@@ -3,7 +3,7 @@
 $ScriptTarget = "Host"
 $ErrorActionPreference = "Stop"
 
-$vmName = "@@vm.name@@"
+$vmName = "@@state.vm.name@@"
 $memoryGb = @@vm.memoryGb@@
 $cpuCount = @@vm.cpuCount@@
 $vhdPath = Join-Path "@@paths.vmDir@@" "$vmName.vhdx"

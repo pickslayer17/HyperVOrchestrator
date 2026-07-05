@@ -3,7 +3,7 @@
 $ScriptTarget = "Host"
 $ErrorActionPreference = "Stop"
 
-$vmName        = "@@vm.name@@"
+$vmName        = "@@state.vm.name@@"
 $vmUser        = "@@credentials.user@@"
 $vmPass        = "@@credentials.password@@"
 $officeArchive = "@@paths.officeArchive@@"

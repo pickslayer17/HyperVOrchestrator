@@ -7,7 +7,7 @@ $switchName = "@@network.switchName@@"
 $natName    = "@@network.natName@@"
 $hostIp     = "@@state.host.natIp@@"
 $prefix     = @@network.subnetPrefixLength@@
-$vmName     = "@@vm.name@@"
+$vmName     = "@@state.vm.name@@"
 
 $octets = $hostIp.Split('.')
 $subnetPrefix = "$($octets[0]).$($octets[1]).$($octets[2]).0/$prefix"

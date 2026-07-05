@@ -3,7 +3,7 @@
 $ScriptTarget = "Host"
 $ErrorActionPreference = "Stop"
 
-$vmName = "@@vm.name@@"
+$vmName = "@@state.vm.name@@"
 $hostIp = "@@state.host.natIp@@"
 $octets = $hostIp.Split('.')
 $base   = "$($octets[0]).$($octets[1]).$($octets[2])."

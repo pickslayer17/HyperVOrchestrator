@@ -5,7 +5,7 @@ $ErrorActionPreference = "Stop"
 
 $switchName = "@@network.switchName@@"
 $natName    = "@@network.natName@@"
-$vmName     = "@@vm.name@@"
+$vmName     = "@@state.vm.name@@"
 
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
     ).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)

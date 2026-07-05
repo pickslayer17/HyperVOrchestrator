@@ -3,7 +3,7 @@
 $ScriptTarget = "Host"
 $ErrorActionPreference = "Stop"
 
-$vmName = "@@vm.name@@"
+$vmName = "@@state.vm.name@@"
 $videoWidth = @@vm.videoWidth@@
 $videoHeight = @@vm.videoHeight@@
 $memoryGb = @@vm.memoryGb@@

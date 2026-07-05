@@ -3,7 +3,7 @@
 $ScriptTarget = "Host"
 $ErrorActionPreference = "Stop"
 
-$vmName = "@@vm.name@@"
+$vmName = "@@state.vm.name@@"
 $windowsIso = "@@paths.windowsIso@@"
 $unattendXml = "@@paths.unattendXml@@"
 $vhdPath = Join-Path "@@paths.vmDir@@" "$vmName.vhdx"

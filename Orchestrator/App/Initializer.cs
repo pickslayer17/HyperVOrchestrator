@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Orchestrator.Config;
 using Orchestrator.Core;
 using Orchestrator.Models;
 
@@ -10,7 +11,7 @@ internal sealed class Initializer
         new() { PropertyNameCaseInsensitive = true };
 
     private readonly RunScriptManager _runManager;
-    private readonly string _systemDir = Path.Combine(AppContext.BaseDirectory, "scripts", "_system");
+    private readonly string _systemDir = Path.Combine(Program.RepoRoot, "scripts", "_system");
 
     public Initializer(RunScriptManager runManager)
     {
@@ -19,17 +20,28 @@ internal sealed class Initializer
 
     public HostInfo Run(Action<string> onLine)
     {
-        var host = new HostInfo();
-
+        var state = _runManager.StateKeeper;
+        var config = AppConfig.Load(Program.RepoRoot);
+        var host = state.NewHost();
+        Console.WriteLine("started");
+        Console.ReadKey();
         host.HyperV = GetHostHyperV();
+        Print(host, onLine);
+        Console.ReadKey();
+        host.SwitchName = config.Network.SwitchName;
         host.NatName = GetHostNatSwitch();
-        foreach (var name in GetHostVmNames())
-        {
-            var vm = GetVmInfo(name);
-            host.Vms[name] = vm;
-        }
+        Print(host, onLine);
+        Console.ReadKey();
+
+        var name = config.Vm.Name;
+        host.Vms[name] = new VmInfo { Name = name };
+        state.SetCurrentVm(name);
+        host.Vms[name] = GetVmInfo(name);
+        state.SetCurrentVm(name);
+        Console.ReadKey();
 
         Print(host, onLine);
+        Console.ReadKey();
         return host;
     }
 

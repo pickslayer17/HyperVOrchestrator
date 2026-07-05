@@ -1,7 +1,7 @@
 $ScriptTarget = "Host"
 $ErrorActionPreference = "Stop"
 
-$vmName = "@@vm.name@@"
+$vmName = "@@state.vm.name@@"
 
 Write-Host "Restarting VM..."
 Restart-VM -Name $vmName -Force

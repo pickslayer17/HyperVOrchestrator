@@ -5,7 +5,7 @@
 $ScriptTarget = "Host"
 $ErrorActionPreference = "Stop"
 
-$vmName = "@@vm.name@@"
+$vmName = "@@state.vm.name@@"
 $vmUser = "@@credentials.user@@"
 $cred = New-Object System.Management.Automation.PSCredential(
     $vmUser,

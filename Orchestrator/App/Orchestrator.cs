@@ -36,8 +36,7 @@ internal sealed class Orchestrator
 
     private void RunInitialization()
     {
-        var initRunManager = new RunScriptManager(_config, _scriptsRoot);
-        var initializer = new Initializer(initRunManager);
+        var initializer = new Initializer(_runManager);
         _hostInfo = initializer.Run(Console.WriteLine);
     }
 
