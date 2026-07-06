@@ -29,12 +29,19 @@ internal sealed class Initializer
         host.SwitchName = config.Network.SwitchName;
         host.NatName = GetHostNatSwitch();
 
-        var vm =  new VmInfo{ Name = config.Vm.Name };
+        var vm = new VmInfo{ Name = config.Vm.Name };
         host.Vms[vm.Name] = vm;
         state.SetCurrentVm(vm.Name);
-        vm = GetVmInfo();
+        var vmInfo = GetVmInfo();
+        vm.HostRdpForwardPort = vmInfo.HostRdpForwardPort;
+        vm.InterfaceAlias = vmInfo.InterfaceAlias;
+        vm.Ip = vmInfo.Ip;
+        vm.natName = vmInfo.natName;
+        vm.ProxyPort = vmInfo.ProxyPort;
+        vm.RdpPort = vmInfo.RdpPort;
+        vm.Running = vmInfo.Running;
 
-        Print(host, onLine);
+        Print(state, onLine);
         return host;
     }
 
@@ -71,14 +78,13 @@ internal sealed class Initializer
         return result.Output;
     }
 
-    private static void Print(HostInfo host, Action<string> onLine)
+    private static void Print(StateKeeper stateKeeper, Action<string> onLine)
     {
+        var host = stateKeeper.CurrentHost;
         onLine($"[INIT] Hyper-V: {host.HyperV}  NAT switch: {(string.IsNullOrEmpty(host.NatName) ? "<none>" : host.NatName)}");
         onLine($"[INIT] VMs ({host.Vms.Count}):");
-        foreach (var pair in host.Vms)
-        {
-            var vm = pair.Value;
-            onLine($"[INIT]   {pair.Key}  {vm.Name}  running={vm.Running}  ip={vm.Ip} rdp={vm.RdpPort} proxy={vm.ProxyPort} alias={vm.InterfaceAlias}");
-        }
+
+        var vm = stateKeeper.CurrentVm;
+        onLine($"[INIT] {vm.Name}  running={vm.Running}  ip={vm.Ip} rdp={vm.RdpPort} proxy={vm.ProxyPort} alias={vm.InterfaceAlias}");
     }
 }
