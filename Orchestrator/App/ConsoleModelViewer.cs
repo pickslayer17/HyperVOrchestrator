@@ -17,7 +17,6 @@ internal sealed class ConsoleModelViewer
 
     public void Draw()
     {
-        Console.ReadLine();
         RebuildFlatNodes();
         Console.Clear();
         Console.WriteLine("  TestRunner orchestrator");
