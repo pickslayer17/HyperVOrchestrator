@@ -66,6 +66,35 @@ internal sealed class ConsoleModelViewer
         }
     }
 
+    public bool ConfirmInHeader(string question)
+    {
+        var previous = new List<string>(_headerLines);
+        SetHeader(new[] { question });
+        HideCursor();
+        Console.Clear();
+        RenderHeader();
+        var confirmed = ReadConfirmation();
+        SetHeader(previous);
+        Console.Clear();
+        RenderHeader();
+        _bodyRow = HeaderHeight;
+        return confirmed;
+    }
+
+    private static bool ReadConfirmation()
+    {
+        try
+        {
+            while (Console.KeyAvailable)
+                Console.ReadKey(intercept: true);
+            return Console.ReadKey(intercept: true).Key == ConsoleKey.Y;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     public void ResumeAfterRun()
     {
         WriteOutput("");

@@ -15,6 +15,7 @@ internal sealed class Orchestrator
     private readonly ScriptModel _model;
     private readonly ConsoleModelViewer _viewer;
     private readonly Logger _logger;
+    private readonly Step? _firstStep;
     private HostInfo _hostInfo = new();
 
     public Orchestrator(AppConfig config, string scriptsRoot, string vmSuitesDir)
@@ -24,6 +25,7 @@ internal sealed class Orchestrator
         _runManager = new RunScriptManager(config, scriptsRoot);
         var factory = new ScriptModelFactory();
         _model = factory.Create(vmSuitesDir);
+        _firstStep = FindFirstStep(_model.Root);
         _viewer = new ConsoleModelViewer(this, _model);
         _logger = new Logger();
     }
@@ -51,6 +53,27 @@ internal sealed class Orchestrator
     {
         var initializer = new Initializer(_runManager);
         _hostInfo = initializer.Run(Console.WriteLine);
+    }
+
+    private bool ConfirmFirstStep(Step step)
+    {
+        var confirmed = _viewer.ConfirmInHeader($"Run {step}?  This wipes the VM.  (y = confirm, any other = cancel)");
+        if (!confirmed)
+            WriteLine($"[{step}] cancelled");
+        return confirmed;
+    }
+
+    private static Step? FindFirstStep(Suite suite)
+    {
+        if (suite.Steps.Count > 0)
+            return suite.Steps[0];
+        foreach (var childSuite in suite.ChildSuites)
+        {
+            var found = FindFirstStep(childSuite);
+            if (found is not null)
+                return found;
+        }
+        return null;
     }
 
     public void Run(IScriptNode node)
@@ -81,6 +104,9 @@ internal sealed class Orchestrator
 
     private bool RunStep(Step step)
     {
+        if (ReferenceEquals(step, _firstStep) && !ConfirmFirstStep(step))
+            return false;
+
         if (!step.HasCheck)
         {
             var okNoCheck = RunMain(step);
