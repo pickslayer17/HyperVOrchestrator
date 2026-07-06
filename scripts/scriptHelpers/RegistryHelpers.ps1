@@ -4,11 +4,11 @@
 
 function ConvertTo-PsRegPath {
     param([Parameter(Mandatory)][string]$RegExePath)
-    $p = $RegExePath -replace '^HKLM\\', 'HKLM:\' `
+    $psRegPath = $RegExePath -replace '^HKLM\\', 'HKLM:\' `
                      -replace '^HKCU\\', 'HKCU:\' `
                      -replace '^HKCR\\', 'HKCR:\' `
                      -replace '^HKU\\',  'HKU:\'
-    return $p
+    return $psRegPath
 }
 
 # Write one value, creating the key if needed. $Type is reg.exe-style (DWord etc).
@@ -19,9 +19,9 @@ function Set-RegValue {
         [Parameter(Mandatory)]$Value,
         [string]$Type = 'DWord'
     )
-    $ps = ConvertTo-PsRegPath $Path
-    if (-not (Test-Path $ps)) { New-Item -Path $ps -Force | Out-Null }
-    New-ItemProperty -Path $ps -Name $Name -Value $Value -PropertyType $Type -Force | Out-Null
+    $psRegPath = ConvertTo-PsRegPath $Path
+    if (-not (Test-Path $psRegPath)) { New-Item -Path $psRegPath -Force | Out-Null }
+    New-ItemProperty -Path $psRegPath -Name $Name -Value $Value -PropertyType $Type -Force | Out-Null
 }
 
 # True if the value exists and equals the expected value.
@@ -31,28 +31,28 @@ function Test-RegValue {
         [Parameter(Mandatory)][string]$Name,
         [Parameter(Mandatory)]$Value
     )
-    $ps = ConvertTo-PsRegPath $Path
-    $cur = (Get-ItemProperty -Path $ps -Name $Name -ErrorAction SilentlyContinue).$Name
-    if ($null -eq $cur) { return $false }
-    return ([int]$cur -eq [int]$Value)
+    $psRegPath = ConvertTo-PsRegPath $Path
+    $currentValue = (Get-ItemProperty -Path $psRegPath -Name $Name -ErrorAction SilentlyContinue).$Name
+    if ($null -eq $currentValue) { return $false }
+    return ([int]$currentValue -eq [int]$Value)
 }
 
 # Apply a whole list of @{Path;Name;Value;Type} entries.
 # Apply only the entries not already at the target value; logs each one it touches.
 function Set-MissingRegTweaks {
     param([Parameter(Mandatory)][array]$Tweaks)
-    foreach ($t in $Tweaks) {
-        if (Test-RegValue -Path $t.Path -Name $t.Name -Value $t.Value) { continue }
-        Write-Host "'$($t.Path)\$($t.Name)': missing (setting to $($t.Value))"
-        Set-RegValue -Path $t.Path -Name $t.Name -Value $t.Value -Type $t.Type
+    foreach ($tweak in $Tweaks) {
+        if (Test-RegValue -Path $tweak.Path -Name $tweak.Name -Value $tweak.Value) { continue }
+        Write-Host "'$($tweak.Path)\$($tweak.Name)': missing (setting to $($tweak.Value))"
+        Set-RegValue -Path $tweak.Path -Name $tweak.Name -Value $tweak.Value -Type $tweak.Type
     }
 }
 
 # Return the first entry that is NOT yet applied, or $null if all match.
 function Get-MissingRegTweak {
     param([Parameter(Mandatory)][array]$Tweaks)
-    foreach ($t in $Tweaks) {
-        if (-not (Test-RegValue -Path $t.Path -Name $t.Name -Value $t.Value)) { return $t }
+    foreach ($tweak in $Tweaks) {
+        if (-not (Test-RegValue -Path $tweak.Path -Name $tweak.Name -Value $tweak.Value)) { return $tweak }
     }
     return $null
 }

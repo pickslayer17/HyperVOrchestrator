@@ -6,45 +6,45 @@ $ErrorActionPreference = "Stop"
 $vmName     = "@@state.vm.name@@"
 $switchName = "@@state.host.switchName@@"
 $vmUser     = "@@credentials.user@@"
-$vmPass     = "@@credentials.password@@"
+$vmPassword = "@@credentials.password@@"
 
 # host ip on the nat switch -> base subnet used to pick the guest's own ip
 $hostNatIp = ""
-$hostIpObj = Get-NetIPAddress -InterfaceAlias "vEthernet ($switchName)" -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+$hostIpAddress = Get-NetIPAddress -InterfaceAlias "vEthernet ($switchName)" -AddressFamily IPv4 -ErrorAction SilentlyContinue |
              Where-Object { $_.PrefixOrigin -ne 'WellKnown' } | Select-Object -First 1
-if ($hostIpObj) { $hostNatIp = $hostIpObj.IPAddress }
-$base = if ($hostNatIp) { $hostNatIp.Substring(0, $hostNatIp.LastIndexOf('.') + 1) } else { "" }
+if ($hostIpAddress) { $hostNatIp = $hostIpAddress.IPAddress }
+$subnetPrefix = if ($hostNatIp) { $hostNatIp.Substring(0, $hostNatIp.LastIndexOf('.') + 1) } else { "" }
 
-$secpass = ConvertTo-SecureString $vmPass -AsPlainText -Force
-$cred    = New-Object System.Management.Automation.PSCredential($vmUser, $secpass)
+$securePassword = ConvertTo-SecureString $vmPassword -AsPlainText -Force
+$credential    = New-Object System.Management.Automation.PSCredential($vmUser, $securePassword)
 
-$probe = {
-    param($base)
-    $rdp   = (Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name PortNumber -ErrorAction SilentlyContinue).PortNumber
-    $alias = (Get-NetAdapter -Physical -ErrorAction SilentlyContinue | Where-Object { $_.Status -eq 'Up' } | Select-Object -First 1).Name
-    $proxy = (Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings" -Name ProxyServer -ErrorAction SilentlyContinue).ProxyServer
-    $proxyPort = if ($proxy -and $proxy.Contains(':')) { $proxy.Split(':')[-1] } else { "" }
-    $ip = ""
-    if ($base) {
-        $ip = (Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-Object { $_.IPAddress -like "$base*" } | Select-Object -First 1).IPAddress
+$guestProbe = {
+    param($subnetPrefix)
+    $rdpPort   = (Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name PortNumber -ErrorAction SilentlyContinue).PortNumber
+    $interfaceAlias = (Get-NetAdapter -Physical -ErrorAction SilentlyContinue | Where-Object { $_.Status -eq 'Up' } | Select-Object -First 1).Name
+    $proxyAddress = (Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings" -Name ProxyServer -ErrorAction SilentlyContinue).ProxyServer
+    $proxyPort = if ($proxyAddress -and $proxyAddress.Contains(':')) { $proxyAddress.Split(':')[-1] } else { "" }
+    $guestIp = ""
+    if ($subnetPrefix) {
+        $guestIp = (Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-Object { $_.IPAddress -like "$subnetPrefix*" } | Select-Object -First 1).IPAddress
     }
-    [pscustomobject]@{ natIp = "$ip"; rdpPort = "$rdp"; interfaceAlias = "$alias"; proxyPort = "$proxyPort" }
+    [pscustomobject]@{ natIp = "$guestIp"; rdpPort = "$rdpPort"; interfaceAlias = "$interfaceAlias"; proxyPort = "$proxyPort" }
 }
 
 $vm = Get-VM -Name $vmName -ErrorAction SilentlyContinue
-$out = @{ name = $vmName; running = $false; natName = $switchName; natIp = ""; rdpPort = ""; interfaceAlias = ""; proxyPort = "" }
+$vmInfo = @{ name = $vmName; running = $false; natName = $switchName; natIp = ""; rdpPort = ""; interfaceAlias = ""; proxyPort = "" }
 
 if ($vm) {
-    $out.running = $vm.State -eq 'Running'
-    if ($out.running) {
+    $vmInfo.running = $vm.State -eq 'Running'
+    if ($vmInfo.running) {
         try {
-            $g = Invoke-Command -VMName $vm.Name -Credential $cred -ArgumentList $base -ScriptBlock $probe -ErrorAction Stop
-            $out.natIp          = $g.natIp
-            $out.rdpPort        = $g.rdpPort
-            $out.interfaceAlias = $g.interfaceAlias
-            $out.proxyPort      = $g.proxyPort
+            $guestInfo = Invoke-Command -VMName $vm.Name -Credential $credential -ArgumentList $subnetPrefix -ScriptBlock $guestProbe -ErrorAction Stop
+            $vmInfo.natIp          = $guestInfo.natIp
+            $vmInfo.rdpPort        = $guestInfo.rdpPort
+            $vmInfo.interfaceAlias = $guestInfo.interfaceAlias
+            $vmInfo.proxyPort      = $guestInfo.proxyPort
         } catch { }
     }
 }
 
-$out | ConvertTo-Json -Depth 4
+$vmInfo | ConvertTo-Json -Depth 4

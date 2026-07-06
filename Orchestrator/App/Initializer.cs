@@ -7,7 +7,7 @@ namespace Orchestrator.App;
 
 internal sealed class Initializer
 {
-    private static readonly JsonSerializerOptions JsonOpts =
+    private static readonly JsonSerializerOptions JsonOptions =
         new() { PropertyNameCaseInsensitive = true };
 
     private readonly RunScriptManager _runManager;
@@ -60,21 +60,21 @@ internal sealed class Initializer
     private List<string> GetHostVmNames()
     {
         var output = Execute("20-Get-VmNames.ps1");
-        var names = JsonSerializer.Deserialize<List<string>>(output, JsonOpts);
-        return names ?? new List<string>();
+        var vmNames = JsonSerializer.Deserialize<List<string>>(output, JsonOptions);
+        return vmNames ?? new List<string>();
     }
 
     private VmInfo GetVmInfo()
     {
         var output = Execute("30-Get-VmInfo.ps1");
-        var vm = JsonSerializer.Deserialize<VmInfo>(output, JsonOpts);
+        var vm = JsonSerializer.Deserialize<VmInfo>(output, JsonOptions);
         return vm;
     }
 
     private string Execute(string scriptFile)
     {
-        var path = Path.Combine(_systemDir, scriptFile);
-        var result = _runManager.ExecuteFileScript(path, _ => { });
+        var scriptPath = Path.Combine(_systemDir, scriptFile);
+        var result = _runManager.ExecuteFileScript(scriptPath, _ => { });
         return result.Output;
     }
 

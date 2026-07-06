@@ -7,7 +7,7 @@ $ErrorActionPreference = "Stop"
 
 $vmName = "@@state.vm.name@@"
 $vmUser = "@@credentials.user@@"
-$cred = New-Object System.Management.Automation.PSCredential(
+$credential = New-Object System.Management.Automation.PSCredential(
     $vmUser,
     (ConvertTo-SecureString "@@credentials.password@@" -AsPlainText -Force))
 
@@ -28,10 +28,10 @@ if (-not $poweredOn) { Write-Host "[$(Now)] TIMEOUT: VM did not power on within 
 $deadline = (Get-Date).AddMinutes(10)
 $found = $false
 while ((Get-Date) -lt $deadline) {
-    $job = Start-Job { param($n, $c) Invoke-Command -VMName $n -Credential $c -ScriptBlock { query session } } -ArgumentList $vmName, $cred
+    $job = Start-Job { param($vmName, $credential) Invoke-Command -VMName $vmName -Credential $credential -ScriptBlock { query session } } -ArgumentList $vmName, $credential
     if (Wait-Job $job -Timeout 8) {
-        $out = Receive-Job $job -ErrorAction SilentlyContinue
-        if ($out -match $vmUser) {
+        $sessionOutput = Receive-Job $job -ErrorAction SilentlyContinue
+        if ($sessionOutput -match $vmUser) {
             Write-Host "[$(Now)] $vmUser session found"
             Remove-Job $job -Force
             $found = $true

@@ -7,46 +7,46 @@
 # any other taskkill failure is a real error and rethrown.
 function Stop-ProcessHard {
     param([Parameter(Mandatory)][string]$ImageName)
-    $out = taskkill /f /im $ImageName 2>&1
+    $taskkillOutput = taskkill /f /im $ImageName 2>&1
     if ($LASTEXITCODE -eq 0) { Write-Host "killed $ImageName"; return }
-    if ($out -match 'not found') { Write-Host "$ImageName not running, skipped"; return }
-    throw "taskkill $ImageName failed: $out"
+    if ($taskkillOutput -match 'not found') { Write-Host "$ImageName not running, skipped"; return }
+    throw "taskkill $ImageName failed: $taskkillOutput"
 }
 
 # --- Services ---
 
 function Disable-ServiceHard {
     param([Parameter(Mandatory)][string]$Name)
-    $svc = Get-Service -Name $Name -ErrorAction SilentlyContinue
-    if (-not $svc) { return }
+    $service = Get-Service -Name $Name -ErrorAction SilentlyContinue
+    if (-not $service) { return }
     Set-Service -Name $Name -StartupType Disabled
-    if ($svc.Status -ne 'Stopped') { Stop-Service -Name $Name -Force -ErrorAction SilentlyContinue }
+    if ($service.Status -ne 'Stopped') { Stop-Service -Name $Name -Force -ErrorAction SilentlyContinue }
 }
 
 # True if the service is absent (nothing to do) OR set to Disabled start mode.
 function Test-ServiceDisabled {
     param([Parameter(Mandatory)][string]$Name)
-    $svc = Get-CimInstance Win32_Service -Filter "Name='$Name'" -ErrorAction SilentlyContinue
-    if (-not $svc) { return $true }
-    return ($svc.StartMode -eq 'Disabled')
+    $service = Get-CimInstance Win32_Service -Filter "Name='$Name'" -ErrorAction SilentlyContinue
+    if (-not $service) { return $true }
+    return ($service.StartMode -eq 'Disabled')
 }
 
 # --- Sleep / power ---
 
 # True if every idle timeout on the active scheme (AC) is 0 (never).
 function Test-NoSleepTimeouts {
-    $subs = @('STANDBYIDLE', 'HIBERNATEIDLE', 'VIDEOIDLE', 'DISKIDLE')
-    foreach ($s in $subs) {
-        $sub = switch ($s) {
+    $idleTimeoutSettings = @('STANDBYIDLE', 'HIBERNATEIDLE', 'VIDEOIDLE', 'DISKIDLE')
+    foreach ($idleSetting in $idleTimeoutSettings) {
+        $subgroup = switch ($idleSetting) {
             'STANDBYIDLE'   { 'SUB_SLEEP' }
             'HIBERNATEIDLE' { 'SUB_SLEEP' }
             'VIDEOIDLE'     { 'SUB_VIDEO' }
             'DISKIDLE'      { 'SUB_DISK' }
         }
-        $out = powercfg /query SCHEME_CURRENT $sub $s 2>$null
-        $ac = ($out | Select-String 'Current AC Power Setting Index')
-        if (-not $ac) { continue }
-        if ($ac.ToString() -notmatch '0x0+\s*$') { return $false }
+        $powercfgOutput = powercfg /query SCHEME_CURRENT $subgroup $idleSetting 2>$null
+        $acPowerSetting = ($powercfgOutput | Select-String 'Current AC Power Setting Index')
+        if (-not $acPowerSetting) { continue }
+        if ($acPowerSetting.ToString() -notmatch '0x0+\s*$') { return $false }
     }
     return $true
 }
@@ -55,10 +55,10 @@ function Test-NoSleepTimeouts {
 
 # True if a fixed page file is configured (InitialSize == MaximumSize, non-zero).
 function Test-PageFileFixed {
-    $pf = Get-CimInstance Win32_PageFileSetting -ErrorAction SilentlyContinue
-    if (-not $pf) { return $false }
-    foreach ($p in @($pf)) {
-        if ($p.InitialSize -eq 0 -or $p.InitialSize -ne $p.MaximumSize) { return $false }
+    $pageFileSetting = Get-CimInstance Win32_PageFileSetting -ErrorAction SilentlyContinue
+    if (-not $pageFileSetting) { return $false }
+    foreach ($pageFile in @($pageFileSetting)) {
+        if ($pageFile.InitialSize -eq 0 -or $pageFile.InitialSize -ne $pageFile.MaximumSize) { return $false }
     }
     return $true
 }
@@ -66,8 +66,8 @@ function Test-PageFileFixed {
 # --- Reserved storage ---
 
 function Test-ReservedStorageDisabled {
-    $out = (dism /online /Get-ReservedStorageState 2>$null) -join "`n"
-    return ($out -match 'Disabled')
+    $dismOutput = (dism /online /Get-ReservedStorageState 2>$null) -join "`n"
+    return ($dismOutput -match 'Disabled')
 }
 
 # --- Appx ---
@@ -93,7 +93,7 @@ function Test-AppxAbsent {
 
 function Test-FeatureRemoved {
     param([Parameter(Mandatory)][string]$Name)
-    $f = Get-WindowsOptionalFeature -Online -FeatureName $Name -ErrorAction SilentlyContinue
-    if (-not $f) { return $true }            # feature not present at all
-    return ($f.State -eq 'Disabled')
+    $feature = Get-WindowsOptionalFeature -Online -FeatureName $Name -ErrorAction SilentlyContinue
+    if (-not $feature) { return $true }            # feature not present at all
+    return ($feature.State -eq 'Disabled')
 }

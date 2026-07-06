@@ -6,7 +6,7 @@ namespace Orchestrator.Core;
 internal sealed class StateKeeper
 {
     private readonly List<HostInfo> _hosts = new();
-    private readonly Dictionary<string, string> _flat = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, string> _flatState = new(StringComparer.OrdinalIgnoreCase);
 
     public HostInfo? CurrentHost { get; private set; }
     public VmInfo? CurrentVm { get; private set; }
@@ -23,9 +23,9 @@ internal sealed class StateKeeper
             CurrentHost = hostInfo;
     }
 
-    public void SetCurrentVm(string name)
+    public void SetCurrentVm(string vmName)
     {
-        if (CurrentHost is not null && CurrentHost.Vms.TryGetValue(name, out var vm))
+        if (CurrentHost is not null && CurrentHost.Vms.TryGetValue(vmName, out var vm))
             CurrentVm = vm;
     }
 
@@ -34,13 +34,13 @@ internal sealed class StateKeeper
         value = "";
 
         if (key.StartsWith("state.host.", StringComparison.OrdinalIgnoreCase))
-            return TryReflect(CurrentHost, key.Substring("state.host.".Length), out value);
+            return TryReadProperty(CurrentHost, key.Substring("state.host.".Length), out value);
         if (key.StartsWith("state.vm.", StringComparison.OrdinalIgnoreCase))
-            return TryReflect(CurrentVm, key.Substring("state.vm.".Length), out value);
+            return TryReadProperty(CurrentVm, key.Substring("state.vm.".Length), out value);
 
-        if (_flat.TryGetValue(key, out var stored))
+        if (_flatState.TryGetValue(key, out var storedValue))
         {
-            value = stored ?? "";
+            value = storedValue ?? "";
             return true;
         }
         return false;
@@ -50,42 +50,42 @@ internal sealed class StateKeeper
     {
         if (key.StartsWith("state.host.", StringComparison.OrdinalIgnoreCase))
         {
-            if (TrySetReflect(CurrentHost, key.Substring("state.host.".Length), value))
+            if (TryWriteProperty(CurrentHost, key.Substring("state.host.".Length), value))
                 return;
         }
         else if (key.StartsWith("state.vm.", StringComparison.OrdinalIgnoreCase))
         {
-            if (TrySetReflect(CurrentVm, key.Substring("state.vm.".Length), value))
+            if (TryWriteProperty(CurrentVm, key.Substring("state.vm.".Length), value))
                 return;
         }
 
-        _flat[key] = value;
+        _flatState[key] = value;
     }
 
-    private static bool TryReflect(object? model, string propName, out string value)
+    private static bool TryReadProperty(object? model, string propertyName, out string value)
     {
         value = "";
-        var prop = FindProp(model, propName);
-        if (prop is null)
+        var property = FindProperty(model, propertyName);
+        if (property is null)
             return false;
-        value = prop.GetValue(model)?.ToString() ?? "";
+        value = property.GetValue(model)?.ToString() ?? "";
         return true;
     }
 
-    private static bool TrySetReflect(object? model, string propName, string value)
+    private static bool TryWriteProperty(object? model, string propertyName, string value)
     {
-        var prop = FindProp(model, propName);
-        if (prop is null || !prop.CanWrite)
+        var property = FindProperty(model, propertyName);
+        if (property is null || !property.CanWrite)
             return false;
-        prop.SetValue(model, value);
+        property.SetValue(model, value);
         return true;
     }
 
-    private static PropertyInfo? FindProp(object? model, string propName)
+    private static PropertyInfo? FindProperty(object? model, string propertyName)
     {
         if (model is null)
             return null;
-        return model.GetType().GetProperty(propName,
+        return model.GetType().GetProperty(propertyName,
             BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
     }
 }

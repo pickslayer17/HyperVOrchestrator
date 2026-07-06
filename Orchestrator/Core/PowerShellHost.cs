@@ -26,24 +26,24 @@ internal sealed class PowerShellHost
 
     public int MajorVersion => _majorVersion;
 
-    public Process BuildProcess(string tempPath)
+    public Process BuildProcess(string tempScriptPath)
     {
         if (_executable == Shell7)
-            return Build7(tempPath);
-        var result = Build5(tempPath);
+            return Build7(tempScriptPath);
+        var result = Build5(tempScriptPath);
         return result;
     }
 
-    private Process Build7(string tempPath)
+    private Process Build7(string tempScriptPath)
     {
-        var processStartInfo = BaseStartInfo(tempPath);
+        var processStartInfo = BaseStartInfo(tempScriptPath);
         var process = new Process { StartInfo = processStartInfo };
         return process;
     }
 
-    private Process Build5(string tempPath)
+    private Process Build5(string tempScriptPath)
     {
-        var processStartInfo = BaseStartInfo(tempPath);
+        var processStartInfo = BaseStartInfo(tempScriptPath);
 
         var windowsDir = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
         var systemModules = Path.Combine(windowsDir, @"system32\WindowsPowerShell\v1.0\Modules");
@@ -54,7 +54,7 @@ internal sealed class PowerShellHost
         return process;
     }
 
-    private ProcessStartInfo BaseStartInfo(string tempPath)
+    private ProcessStartInfo BaseStartInfo(string tempScriptPath)
     {
         var processStartInfo = new ProcessStartInfo
         {
@@ -67,7 +67,7 @@ internal sealed class PowerShellHost
         processStartInfo.ArgumentList.Add("-ExecutionPolicy");
         processStartInfo.ArgumentList.Add("Bypass");
         processStartInfo.ArgumentList.Add("-File");
-        processStartInfo.ArgumentList.Add(tempPath);
+        processStartInfo.ArgumentList.Add(tempScriptPath);
         return processStartInfo;
     }
 

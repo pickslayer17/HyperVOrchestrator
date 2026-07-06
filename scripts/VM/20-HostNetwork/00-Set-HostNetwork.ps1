@@ -6,28 +6,28 @@ $ErrorActionPreference = "Stop"
 $switchName = "@@network.switchName@@"
 $natName    = "@@network.natName@@"
 $hostIp     = "@@state.host.natIp@@"
-$prefix     = @@network.subnetPrefixLength@@
+$prefixLength = @@network.subnetPrefixLength@@
 $vmName     = "@@state.vm.name@@"
 
 $octets = $hostIp.Split('.')
-$subnetPrefix = "$($octets[0]).$($octets[1]).$($octets[2]).0/$prefix"
+$subnetPrefix = "$($octets[0]).$($octets[1]).$($octets[2]).0/$prefixLength"
 
 # switch
 $natSwitch = Get-VMSwitch -Name $switchName -ErrorAction SilentlyContinue
 if (-not $natSwitch) {
     Write-Host "Creating $switchName..."
     New-VMSwitch -Name $switchName -SwitchType Internal
-    $ifIndex = (Get-NetAdapter -Name "vEthernet ($switchName)").ifIndex
-    New-NetIPAddress -IPAddress $hostIp -PrefixLength $prefix -InterfaceIndex $ifIndex
+    $interfaceIndex = (Get-NetAdapter -Name "vEthernet ($switchName)").ifIndex
+    New-NetIPAddress -IPAddress $hostIp -PrefixLength $prefixLength -InterfaceIndex $interfaceIndex
     Write-Host "$switchName created with IP $hostIp"
 } else {
     Write-Host "$switchName already exists."
-    $ifIndex = (Get-NetAdapter -Name "vEthernet ($switchName)").ifIndex
+    $interfaceIndex = (Get-NetAdapter -Name "vEthernet ($switchName)").ifIndex
 }
 
 # nat
-$nat = Get-NetNat -Name $natName -ErrorAction SilentlyContinue
-if (-not $nat) {
+$natEntry = Get-NetNat -Name $natName -ErrorAction SilentlyContinue
+if (-not $natEntry) {
     New-NetNat -Name $natName -InternalIPInterfaceAddressPrefix $subnetPrefix
     Write-Host "$natName created."
 } else {

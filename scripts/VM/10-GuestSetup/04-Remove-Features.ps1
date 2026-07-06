@@ -7,13 +7,13 @@ $ErrorActionPreference = "Stop"
 <<inject::scriptHelpers/SystemHelpers.ps1>>
 <<inject::scriptData/FeaturesToRemove.ps1>>
 
-foreach ($f in $FeaturesToRemove) {
-    if (Test-FeatureRemoved -Name $f.Name) { continue }
-    Write-Host "'$($f.Name)': present (removing)"
-    if ($f.Hard) {
-        dism /online /Disable-Feature /FeatureName:$($f.Name) /Remove
+foreach ($feature in $FeaturesToRemove) {
+    if (Test-FeatureRemoved -Name $feature.Name) { continue }
+    Write-Host "'$($feature.Name)': present (removing)"
+    if ($feature.Hard) {
+        dism /online /Disable-Feature /FeatureName:$($feature.Name) /Remove
     } else {
-        dism /online /Disable-Feature /FeatureName:$($f.Name) /Remove 2>$null
+        dism /online /Disable-Feature /FeatureName:$($feature.Name) /Remove 2>$null
     }
 }
 

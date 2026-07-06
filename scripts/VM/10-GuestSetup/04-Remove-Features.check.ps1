@@ -7,16 +7,16 @@ $ErrorActionPreference = "Stop"
 <<inject::scriptData/FeaturesToRemove.ps1>>
 
 # Only list what is actually present (needs removal); count the rest.
-$present = [System.Collections.Generic.List[string]]::new()
+$presentFeatures = [System.Collections.Generic.List[string]]::new()
 $absentCount = 0
-foreach ($f in $FeaturesToRemove) {
-    if (-not $f.Hard) { continue }
-    if (Test-FeatureRemoved -Name $f.Name) { $absentCount++ } else { $present.Add($f.Name) }
+foreach ($feature in $FeaturesToRemove) {
+    if (-not $feature.Hard) { continue }
+    if (Test-FeatureRemoved -Name $feature.Name) { $absentCount++ } else { $presentFeatures.Add($feature.Name) }
 }
 
-if ($present.Count -gt 0) {
-    Write-Host "$absentCount absent, $($present.Count) present (need removal):"
-    $present | ForEach-Object { Write-Host "  $_" }
+if ($presentFeatures.Count -gt 0) {
+    Write-Host "$absentCount absent, $($presentFeatures.Count) present (need removal):"
+    $presentFeatures | ForEach-Object { Write-Host "  $_" }
     return 0
 }
 Write-Host "already done: optional features removed."

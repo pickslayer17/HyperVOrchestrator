@@ -22,27 +22,27 @@ internal sealed class VersionDecorator : IScriptDecorator
 
     private string ResolveVersion(Match match)
     {
-        var body = match.Groups[1].Value;
-        var map = BuildMap(body);
-        var wanted = _majorVersion.ToString();
+        var versionSpec = match.Groups[1].Value;
+        var versionMap = ParseVersionSpec(versionSpec);
+        var wantedVersion = _majorVersion.ToString();
 
-        if (map.TryGetValue(wanted, out var value))
+        if (versionMap.TryGetValue(wantedVersion, out var value))
             return value;
         throw new InvalidOperationException($"No value for PowerShell major version {_majorVersion} in: {match.Value}");
     }
 
-    private static Dictionary<string, string> BuildMap(string body)
+    private static Dictionary<string, string> ParseVersionSpec(string versionSpec)
     {
-        var map = new Dictionary<string, string>();
-        var pairs = body.Split(',');
+        var versionMap = new Dictionary<string, string>();
+        var pairs = versionSpec.Split(',');
         foreach (var pair in pairs)
         {
             var trimmedPair = pair.Trim();
             var parts = trimmedPair.Split('=');
             var key = parts[0].Trim();
             var value = parts[1].Trim();
-            map[key] = value;
+            versionMap[key] = value;
         }
-        return map;
+        return versionMap;
     }
 }

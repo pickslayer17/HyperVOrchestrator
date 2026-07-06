@@ -2,11 +2,11 @@
 $ScriptTarget = "Host"
 $ErrorActionPreference = "Stop"
 
-$name = ""
-$nat = Get-NetNat -ErrorAction SilentlyContinue | Select-Object -First 1
-if ($nat) {
-    $sw = Get-VMSwitch -SwitchType Internal -ErrorAction SilentlyContinue | Select-Object -First 1
-    if ($sw) { $name = $sw.Name }
+$switchName = ""
+$natEntry = Get-NetNat -ErrorAction SilentlyContinue | Select-Object -First 1
+if ($natEntry) {
+    $internalSwitch = Get-VMSwitch -SwitchType Internal -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($internalSwitch) { $switchName = $internalSwitch.Name }
 }
 
-"$name"
+"$switchName"

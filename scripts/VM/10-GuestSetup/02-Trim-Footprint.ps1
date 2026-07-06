@@ -22,8 +22,8 @@ powercfg /change disk-timeout-dc 0
 # --- Disk footprint: keep this disposable 40GB VM from growing ---
 Disable-ComputerRestore -Drive "C:\"
 vssadmin delete shadows /all /quiet
-$cs = Get-WmiObject -Class Win32_ComputerSystem
-if ($cs.AutomaticManagedPagefile) { $cs.AutomaticManagedPagefile = $false; $cs.Put() | Out-Null }
+$computerSystem = Get-WmiObject -Class Win32_ComputerSystem
+if ($computerSystem.AutomaticManagedPagefile) { $computerSystem.AutomaticManagedPagefile = $false; $computerSystem.Put() | Out-Null }
 Get-WmiObject -Class Win32_PageFileSetting -ErrorAction SilentlyContinue | ForEach-Object { $_.Delete() }
 Set-WmiInstance -Class Win32_PageFileSetting -Arguments @{ Name = "C:\pagefile.sys"; InitialSize = 4096; MaximumSize = 4096 } | Out-Null
 dism /online /Set-ReservedStorageState /State:Disabled

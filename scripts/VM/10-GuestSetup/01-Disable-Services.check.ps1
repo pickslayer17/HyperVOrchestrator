@@ -8,10 +8,10 @@ $ErrorActionPreference = "Stop"
 <<inject::scriptData/Services.ps1>>
 
 # smoke: the services we intend to disable must exist on this OS
-foreach ($s in $ServicesToDisable) {
-    if ($s -eq 'dmwappushservice') { continue }  # optional on some builds
-    if (-not (Get-Service -Name $s -ErrorAction Stop)) {
-        Write-Host "smoke fail: service '$s' not found on this OS."
+foreach ($service in $ServicesToDisable) {
+    if ($service -eq 'dmwappushservice') { continue }  # optional on some builds
+    if (-not (Get-Service -Name $service -ErrorAction Stop)) {
+        Write-Host "smoke fail: service '$service' not found on this OS."
         return 1
     }
 }
@@ -20,11 +20,11 @@ foreach ($s in $ServicesToDisable) {
 $todo = [System.Collections.Generic.List[string]]::new()
 $doneCount = 0
 
-foreach ($s in $ServicesToDisable) {
-    if (Test-ServiceDisabled -Name $s) { $doneCount++ } else { $todo.Add("service $s (enable->disable)") }
+foreach ($service in $ServicesToDisable) {
+    if (Test-ServiceDisabled -Name $service) { $doneCount++ } else { $todo.Add("service $service (enable->disable)") }
 }
-foreach ($r in $ServiceRegStart) {
-    if (Test-RegValue -Path $r.Path -Name $r.Name -Value $r.Value) { $doneCount++ } else { $todo.Add("reg $($r.Path)\$($r.Name)") }
+foreach ($registryEntry in $ServiceRegStart) {
+    if (Test-RegValue -Path $registryEntry.Path -Name $registryEntry.Name -Value $registryEntry.Value) { $doneCount++ } else { $todo.Add("reg $($registryEntry.Path)\$($registryEntry.Name)") }
 }
 
 if ($todo.Count -gt 0) {

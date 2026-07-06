@@ -9,7 +9,7 @@ internal sealed class ScriptRunner
 {
     private readonly object _gate = new object();
     private readonly PowerShellHost _host;
-    private Process? _current;
+    private Process? _currentProcess;
 
     public ScriptRunner(PowerShellHost host)
     {
@@ -18,18 +18,18 @@ internal sealed class ScriptRunner
 
     public Result Run(string scriptText, Action<string> onLine)
     {
-        var tempPath = FileHelper.WriteTempScript(scriptText);
-        var output = new StringBuilder();
+        var tempScriptPath = FileHelper.WriteTempScript(scriptText);
+        var outputBuffer = new StringBuilder();
 
-        var process = _host.BuildProcess(tempPath);
-        RegisterOutputAdded(process, output, onLine);
+        var process = _host.BuildProcess(tempScriptPath);
+        RegisterOutputHandlers(process, outputBuffer, onLine);
 
-        var exitCode = RunProcess(process, tempPath);
+        var exitCode = RunProcess(process, tempScriptPath);
 
         var result = new Result
         {
             ExitCode = exitCode,
-            Output = output.ToString(),
+            Output = outputBuffer.ToString(),
         };
         return result;
     }
@@ -38,12 +38,12 @@ internal sealed class ScriptRunner
     {
         lock (_gate)
         {
-            if (_current is not null)
-                _current.Kill(entireProcessTree: true);
+            if (_currentProcess is not null)
+                _currentProcess.Kill(entireProcessTree: true);
         }
     }
 
-    private void RegisterOutputAdded(Process process, StringBuilder output, Action<string> onLine)
+    private void RegisterOutputHandlers(Process process, StringBuilder outputBuffer, Action<string> onLine)
     {
         process.OutputDataReceived += (sender, eventArgs) =>
         {
@@ -51,7 +51,7 @@ internal sealed class ScriptRunner
                 return;
             lock (_gate)
             {
-                output.AppendLine(eventArgs.Data);
+                outputBuffer.AppendLine(eventArgs.Data);
                 onLine(eventArgs.Data);
             }
         };
@@ -61,33 +61,33 @@ internal sealed class ScriptRunner
                 return;
             lock (_gate)
             {
-                output.AppendLine(eventArgs.Data);
+                outputBuffer.AppendLine(eventArgs.Data);
                 onLine(eventArgs.Data);
             }
         };
     }
 
-    private int RunProcess(Process process, string tempPath)
+    private int RunProcess(Process process, string tempScriptPath)
     {
         try
         {
             process.Start();
             lock (_gate)
-                _current = process;
+                _currentProcess = process;
 
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
 
             process.WaitForExit();
-            var result = process.ExitCode;
-            return result;
+            var exitCode = process.ExitCode;
+            return exitCode;
         }
         finally
         {
             lock (_gate)
-                _current = null;
+                _currentProcess = null;
             process.Dispose();
-            FileHelper.DeleteTempScript(tempPath);
+            FileHelper.DeleteTempScript(tempScriptPath);
         }
     }
 }

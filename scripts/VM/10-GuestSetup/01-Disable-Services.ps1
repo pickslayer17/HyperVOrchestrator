@@ -14,16 +14,16 @@ $ErrorActionPreference = "Stop"
 # A burst of back-to-back Stop-Service calls under the SYSTEM task drops the PSDirect
 # VMBus socket ("Hyper-V socket target process has ended"). A short pause after each
 # stop lets the channel settle; individually/spaced they are fine.
-foreach ($s in $ServicesToDisable) {
-    if (Test-ServiceDisabled -Name $s) { continue }
-    Write-Host "'$s': enabled (disabling)"
-    Disable-ServiceHard -Name $s
+foreach ($service in $ServicesToDisable) {
+    if (Test-ServiceDisabled -Name $service) { continue }
+    Write-Host "'$service': enabled (disabling)"
+    Disable-ServiceHard -Name $service
     Start-Sleep -Seconds 1
 }
-foreach ($r in $ServiceRegStart) {
-    if (Test-RegValue -Path $r.Path -Name $r.Name -Value $r.Value) { continue }
-    Write-Host "'$($r.Path)\$($r.Name)': missing (setting to $($r.Value))"
-    Set-RegValue @r
+foreach ($registryEntry in $ServiceRegStart) {
+    if (Test-RegValue -Path $registryEntry.Path -Name $registryEntry.Name -Value $registryEntry.Value) { continue }
+    Write-Host "'$($registryEntry.Path)\$($registryEntry.Name)': missing (setting to $($registryEntry.Value))"
+    Set-RegValue @registryEntry
 }
 
 # wlms is disabled via registry Start=4 above (won't start after the next reboot).

@@ -5,13 +5,13 @@ $ErrorActionPreference = "Stop"
 
 $vmName        = "@@state.vm.name@@"
 $vmUser        = "@@credentials.user@@"
-$vmPass        = "@@credentials.password@@"
+$vmPassword    = "@@credentials.password@@"
 $officeArchive = "@@paths.officeArchive@@"
 
 if (-not (Test-Path $officeArchive)) { throw "Office archive not found: $officeArchive" }
 
-$cred = New-Object System.Management.Automation.PSCredential($vmUser, (ConvertTo-SecureString $vmPass -AsPlainText -Force))
-$session = New-PSSession -VMName $vmName -Credential $cred
+$credential = New-Object System.Management.Automation.PSCredential($vmUser, (ConvertTo-SecureString $vmPassword -AsPlainText -Force))
+$session = New-PSSession -VMName $vmName -Credential $credential
 
 Write-Host "Copying Office archive to VM..."
 Copy-Item -ToSession $session -Path $officeArchive -Destination "C:\office.zip"

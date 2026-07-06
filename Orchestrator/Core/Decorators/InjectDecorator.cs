@@ -22,8 +22,8 @@ internal sealed class InjectDecorator : IScriptDecorator
 
     private string ResolveInject(Match match)
     {
-        var relative = match.Groups[1].Value.Trim();
-        var fullPath = Path.Combine(_scriptsRoot, relative.Replace('/', Path.DirectorySeparatorChar));
+        var relativePath = match.Groups[1].Value.Trim();
+        var fullPath = Path.Combine(_scriptsRoot, relativePath.Replace('/', Path.DirectorySeparatorChar));
         var content = FileHelper.ReadText(fullPath);
         return content;
     }

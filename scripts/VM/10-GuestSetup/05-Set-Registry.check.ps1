@@ -13,19 +13,19 @@ if (-not (Test-Path "HKCU:\Software")) {
 }
 
 # Only list what is actually missing (needs setting); count the rest.
-$missing = [System.Collections.Generic.List[string]]::new()
+$missingTweaks = [System.Collections.Generic.List[string]]::new()
 $appliedCount = 0
-foreach ($t in $RegistryTweaks) {
-    if (Test-RegValue -Path $t.Path -Name $t.Name -Value $t.Value) {
+foreach ($tweak in $RegistryTweaks) {
+    if (Test-RegValue -Path $tweak.Path -Name $tweak.Name -Value $tweak.Value) {
         $appliedCount++
     } else {
-        $missing.Add("$($t.Path)\$($t.Name)")
+        $missingTweaks.Add("$($tweak.Path)\$($tweak.Name)")
     }
 }
 
-if ($missing.Count -gt 0) {
-    Write-Host "$appliedCount applied, $($missing.Count) missing (need setting):"
-    $missing | ForEach-Object { Write-Host "  $_" }
+if ($missingTweaks.Count -gt 0) {
+    Write-Host "$appliedCount applied, $($missingTweaks.Count) missing (need setting):"
+    $missingTweaks | ForEach-Object { Write-Host "  $_" }
     return 0
 }
 Write-Host "already done: all $($RegistryTweaks.Count) registry tweaks applied."

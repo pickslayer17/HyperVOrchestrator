@@ -12,12 +12,12 @@ if (-not (Get-LocalUser -Name $vmUser -ErrorAction SilentlyContinue)) {
 }
 
 # done? the user already holds FullControl over C:\ (inheritance flags included)
-$acl = Get-Acl "C:\"
-$has = $acl.Access | Where-Object {
+$accessControlList = Get-Acl "C:\"
+$fullControlAccess = $accessControlList.Access | Where-Object {
     $_.IdentityReference -like "*\$vmUser" -and
     $_.FileSystemRights -band [System.Security.AccessControl.FileSystemRights]::FullControl -and
     $_.AccessControlType -eq 'Allow'
 }
-if ($has) { Write-Host "already done: $vmUser has FullControl on C:\"; return 2 }
+if ($fullControlAccess) { Write-Host "already done: $vmUser has FullControl on C:\"; return 2 }
 
 return 0

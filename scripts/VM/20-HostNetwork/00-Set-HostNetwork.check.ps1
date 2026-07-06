@@ -14,7 +14,7 @@ if (-not (Get-Module -ListAvailable -Name Hyper-V)) { Write-Host "Hyper-V module
 
 # picture
 $switch    = Get-VMSwitch -Name $switchName -ErrorAction SilentlyContinue
-$nat       = Get-NetNat   -Name $natName    -ErrorAction SilentlyContinue
+$natEntry  = Get-NetNat   -Name $natName    -ErrorAction SilentlyContinue
 $hostIpObj = Get-NetIPAddress -InterfaceAlias "vEthernet ($switchName)" -AddressFamily IPv4 -ErrorAction SilentlyContinue |
              Where-Object { $_.PrefixOrigin -ne 'WellKnown' } | Select-Object -First 1
 $adapter   = Get-VMNetworkAdapter -VMName $vmName -ErrorAction SilentlyContinue
@@ -48,13 +48,13 @@ if ($hostIpObj) {
 }
 
 # done only if infra exists AND this vm is on the switch
-if ($switch -and $nat -and $hostIpObj -and $onSwitch) {
+if ($switch -and $natEntry -and $hostIpObj -and $onSwitch) {
     Write-Host "Host network ready; $vmName on $switchName at $($hostIpObj.IPAddress)/$($hostIpObj.PrefixLength)."
     exit 2
 }
 
 if (-not $switch)    { Write-Host "switch $switchName missing." }
-if (-not $nat)       { Write-Host "nat $natName missing." }
+if (-not $natEntry)  { Write-Host "nat $natName missing." }
 if (-not $hostIpObj) { Write-Host "host gateway ip missing." }
 if (-not $onSwitch)  { Write-Host "$vmName not on ${switchName} (current: '$($adapter.SwitchName)')." }
 exit 0

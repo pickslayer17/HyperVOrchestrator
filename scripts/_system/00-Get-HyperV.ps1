@@ -2,6 +2,6 @@
 $ScriptTarget = "Host"
 $ErrorActionPreference = "Stop"
 
-$present = [bool](Get-Command Get-VM -ErrorAction SilentlyContinue)
+$hyperVPresent = [bool](Get-Command Get-VM -ErrorAction SilentlyContinue)
 
-if ($present) { "true" } else { "false" }
+if ($hyperVPresent) { "true" } else { "false" }
