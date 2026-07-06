@@ -3,10 +3,6 @@ using Orchestrator.Models;
 
 namespace Orchestrator.Core;
 
-// Holds the live host/vm models (draft: no json file yet). Always works over
-// one CurrentHost and one CurrentVm. Resolves state.host.X / state.vm.X by
-// reflecting the property named X off the current model. Flat <<set::>> pairs
-// still land in a string map for anything that isn't a model field.
 internal sealed class StateKeeper
 {
     private readonly List<HostInfo> _hosts = new();
@@ -15,12 +11,16 @@ internal sealed class StateKeeper
     public HostInfo? CurrentHost { get; private set; }
     public VmInfo? CurrentVm { get; private set; }
 
-    public HostInfo NewHost()
+    public void AddHost(HostInfo hostInfo)
     {
-        var host = new HostInfo();
-        _hosts.Add(host);
-        CurrentHost = host;
-        return host;
+        _hosts.Add(hostInfo);
+        CurrentHost = hostInfo;
+    }
+
+    public void SetCurrentHost(HostInfo hostInfo)
+    {
+        if (_hosts.Contains(hostInfo))
+            CurrentHost = hostInfo;
     }
 
     public void SetCurrentVm(string name)

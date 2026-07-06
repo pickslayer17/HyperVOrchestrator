@@ -22,15 +22,17 @@ internal sealed class Initializer
     {
         var state = _runManager.StateKeeper;
         var config = AppConfig.Load(Program.RepoRoot);
-        var host = state.NewHost();
+        var host = new HostInfo();
+        state.AddHost(host);
+        state.SetCurrentHost(host);
         host.HyperV = GetHostHyperV();
         host.SwitchName = config.Network.SwitchName;
         host.NatName = GetHostNatSwitch();
-        var vmName = config.Vm.Name;
-        host.Vms[vmName] = new VmInfo { Name = vmName };
-        state.SetCurrentVm(vmName);
-        host.Vms[vmName] = GetVmInfo(vmName);
-        state.SetCurrentVm(vmName);
+
+        var vm =  new VmInfo{ Name = config.Vm.Name };
+        host.Vms[vm.Name] = vm;
+        state.SetCurrentVm(vm.Name);
+        vm = GetVmInfo();
 
         Print(host, onLine);
         return host;
@@ -55,11 +57,11 @@ internal sealed class Initializer
         return names ?? new List<string>();
     }
 
-    private VmInfo GetVmInfo(string name)
+    private VmInfo GetVmInfo()
     {
         var output = Execute("30-Get-VmInfo.ps1");
         var vm = JsonSerializer.Deserialize<VmInfo>(output, JsonOpts);
-        return vm ?? new VmInfo { Name = name };
+        return vm;
     }
 
     private string Execute(string scriptFile)

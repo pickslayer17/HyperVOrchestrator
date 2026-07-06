@@ -51,7 +51,6 @@ internal sealed class Orchestrator
         _viewer.ResumeAfterRun();
     }
 
-    // Returns false as soon as any step fails, so the whole run stops there.
     private bool RunSuite(Suite suite)
     {
         foreach (var step in suite.Steps)
