@@ -23,25 +23,16 @@ internal sealed class Initializer
         var state = _runManager.StateKeeper;
         var config = AppConfig.Load(Program.RepoRoot);
         var host = state.NewHost();
-        Console.WriteLine("started");
-        Console.ReadKey();
         host.HyperV = GetHostHyperV();
-        Print(host, onLine);
-        Console.ReadKey();
         host.SwitchName = config.Network.SwitchName;
         host.NatName = GetHostNatSwitch();
-        Print(host, onLine);
-        Console.ReadKey();
-
-        var name = config.Vm.Name;
-        host.Vms[name] = new VmInfo { Name = name };
-        state.SetCurrentVm(name);
-        host.Vms[name] = GetVmInfo(name);
-        state.SetCurrentVm(name);
-        Console.ReadKey();
+        var vmName = config.Vm.Name;
+        host.Vms[vmName] = new VmInfo { Name = vmName };
+        state.SetCurrentVm(vmName);
+        host.Vms[vmName] = GetVmInfo(vmName);
+        state.SetCurrentVm(vmName);
 
         Print(host, onLine);
-        Console.ReadKey();
         return host;
     }
 
