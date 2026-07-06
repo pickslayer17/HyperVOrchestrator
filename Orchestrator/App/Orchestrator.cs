@@ -25,14 +25,26 @@ internal sealed class Orchestrator
         var factory = new ScriptModelFactory();
         _model = factory.Create(vmSuitesDir);
         _viewer = new ConsoleModelViewer(this, _model);
-        _viewer.SetHeader(new[] { "Host:", "VM:" });
         _logger = new Logger();
     }
 
     public void Start()
     {
         RunInitialization();
+        RefreshHeader();
         _viewer.Draw();
+    }
+
+    private void RefreshHeader()
+    {
+        var state = _runManager.StateKeeper;
+        var host = state.CurrentHost;
+        var vm = state.CurrentVm;
+        _viewer.SetHeader(new[]
+        {
+            host is null ? "Host:" : $"Host:  Hyper-V={host.HyperV}  switch={host.SwitchName}  nat={host.NatName}  ip={host.NatIp}",
+            vm is null ? "VM:" : $"VM:  {vm.Name}  running={vm.Running}  ip={vm.Ip}  rdp={vm.RdpPort}  proxy={vm.ProxyPort}",
+        });
     }
 
     private void RunInitialization()
@@ -79,6 +91,7 @@ internal sealed class Orchestrator
         _logger.SetContext(step + "/check");
         WriteLine($"[CHECK {step}]");
         var checkResult = _runManager.ExecuteFileScript(step.CheckPath, WriteLine);
+        RefreshHeader();
         if (checkResult.ExitCode == CheckAlreadyDone)
         {
             WriteLine($"[CHECK RESULT: already done — skipping main]");
@@ -102,6 +115,7 @@ internal sealed class Orchestrator
         _logger.SetContext(step + "/main");
         WriteLine($"[STEP {step}]");
         var result = _runManager.ExecuteFileScript(step.ScriptPath, WriteLine);
+        RefreshHeader();
         if (result.ExitCode == 0)
         {
             step.State = StepState.Passed;
