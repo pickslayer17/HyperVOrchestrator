@@ -19,14 +19,12 @@ internal sealed class ConsoleModelViewer
         _model = model;
     }
 
-    // The viewer owns "there is a header"; the caller owns "what is in it".
     public void SetHeader(IReadOnlyList<string> lines)
     {
         _headerLines.Clear();
         _headerLines.AddRange(lines);
     }
 
-    // Header lines + one separator row. 0 when no header was set.
     private int HeaderHeight => _headerLines.Count == 0 ? 0 : _headerLines.Count + 1;
 
     public void Draw()
@@ -46,8 +44,6 @@ internal sealed class ConsoleModelViewer
         ReadKeys();
     }
 
-    // Single funnel for everything printed below the header. Keeps the header
-    // rows untouched by scrolling only the body region.
     public void WriteOutput(string line)
     {
         try
@@ -78,7 +74,6 @@ internal sealed class ConsoleModelViewer
         Draw();
     }
 
-    // Clears the body area under the header and parks the write cursor at its top.
     private void BeginRun()
     {
         EnsureHeight();
@@ -101,8 +96,6 @@ internal sealed class ConsoleModelViewer
         WriteRow(_headerLines.Count, new string('=', Math.Max(0, width - 1)), width);
     }
 
-    // Writes one full row at (0,row) without a newline, padded/truncated to the
-    // visible width, so it never triggers a buffer scroll or leaves stale chars.
     private static void WriteRow(int row, string text, int width)
     {
         var max = Math.Max(0, width - 1);
@@ -185,7 +178,6 @@ internal sealed class ConsoleModelViewer
             AppendNode(childSuite);
     }
 
-    // Fix the window height so header + every node + footer fit, capped at the screen.
     private void EnsureHeight()
     {
         try
@@ -208,11 +200,9 @@ internal sealed class ConsoleModelViewer
         }
         catch
         {
-            // output redirected or not a real console — leave size alone
         }
     }
 
-    // Header rows + one line per node + blank line + footer, plus a resting row.
     private int DesiredHeight()
     {
         return HeaderHeight + _flatNodes.Count + 3;
