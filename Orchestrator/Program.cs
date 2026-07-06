@@ -1,6 +1,5 @@
 using Orchestrator.App;
 using Orchestrator.Config;
-using Orchestrator.Core;
 
 namespace Orchestrator;
 
@@ -11,28 +10,14 @@ internal static class Program
     private const string ScriptsFolder = "scripts";
     private const string VmSuitesFolder = "VM";
 
-    private static int Main(string[] arguments)
+    private static void Main()
     {
         var scriptsRoot = Path.Combine(RepoRoot, ScriptsFolder);
         var vmSuitesDir = Path.Combine(scriptsRoot, VmSuitesFolder);
         var config = AppConfig.Load(RepoRoot);
 
-        if (arguments.Length > 0)
-        {
-            var exitCode = RunHeadless(config, scriptsRoot, arguments[0]);
-            return exitCode;
-        }
-
         var orchestrator = new App.Orchestrator(config, scriptsRoot, vmSuitesDir);
         orchestrator.Start();
-        return 0;
-    }
-
-    private static int RunHeadless(AppConfig config, string scriptsRoot, string scriptPath)
-    {
-        var runManager = new RunScriptManager(config, scriptsRoot);
-        var result = runManager.ExecuteFileScript(scriptPath, Console.WriteLine);
-        return result.ExitCode;
     }
 
     private static string FindRepoRoot()
