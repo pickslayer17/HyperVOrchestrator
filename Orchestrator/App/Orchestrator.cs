@@ -25,6 +25,7 @@ internal sealed class Orchestrator
         var factory = new ScriptModelFactory();
         _model = factory.Create(vmSuitesDir);
         _viewer = new ConsoleModelViewer(this, _model);
+        _viewer.SetHeader(new[] { "Host:", "VM:" });
         _logger = new Logger();
     }
 

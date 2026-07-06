@@ -4,10 +4,14 @@ namespace Orchestrator.App;
 
 internal sealed class ConsoleModelViewer
 {
+    private const string Footer = "  [up/down] move   [Enter] run   [q] quit";
+
     private readonly Orchestrator _orchestrator;
     private readonly ScriptModel _model;
     private readonly List<IScriptNode> _flatNodes = new List<IScriptNode>();
+    private readonly List<string> _headerLines = new List<string>();
     private int _cursorIndex;
+    private int _bodyRow;
 
     public ConsoleModelViewer(Orchestrator orchestrator, ScriptModel model)
     {
@@ -15,33 +19,96 @@ internal sealed class ConsoleModelViewer
         _model = model;
     }
 
+    // The viewer owns "there is a header"; the caller owns "what is in it".
+    public void SetHeader(IReadOnlyList<string> lines)
+    {
+        _headerLines.Clear();
+        _headerLines.AddRange(lines);
+    }
+
+    // Header lines + one separator row. 0 when no header was set.
+    private int HeaderHeight => _headerLines.Count == 0 ? 0 : _headerLines.Count + 1;
+
     public void Draw()
     {
         RebuildFlatNodes();
+        EnsureHeight();
+        HideCursor();
         Console.Clear();
-        Console.WriteLine("  TestRunner orchestrator");
-        Console.WriteLine("  =======================");
-        Console.WriteLine();
+        RenderHeader();
 
+        Console.SetCursorPosition(0, HeaderHeight);
         for (var index = 0; index < _flatNodes.Count; index++)
             DrawNode(_flatNodes[index], index);
 
         Console.WriteLine();
-        Console.WriteLine("  [up/down] move   [Enter] run   [q] quit");
+        Console.WriteLine(Footer);
         ReadKeys();
     }
 
+    // Single funnel for everything printed below the header. Keeps the header
+    // rows untouched by scrolling only the body region.
     public void WriteOutput(string line)
     {
-        Console.WriteLine(line);
+        try
+        {
+            var width = SafeWidth();
+            var lastRow = Console.WindowHeight - 1;
+            if (_bodyRow > lastRow)
+            {
+                var bodyHeight = lastRow - HeaderHeight;
+                if (bodyHeight > 0)
+                    Console.MoveBufferArea(0, HeaderHeight + 1, Console.BufferWidth, bodyHeight, 0, HeaderHeight);
+                _bodyRow = lastRow;
+            }
+            WriteRow(_bodyRow, line, width);
+            _bodyRow++;
+        }
+        catch
+        {
+            Console.WriteLine(line);
+        }
     }
 
     public void ResumeAfterRun()
     {
-        Console.WriteLine();
-        Console.WriteLine("  -- done, press any key --");
+        WriteOutput("");
+        WriteOutput("  -- done, press any key --");
         Console.ReadKey(intercept: true);
         Draw();
+    }
+
+    // Clears the body area under the header and parks the write cursor at its top.
+    private void BeginRun()
+    {
+        EnsureHeight();
+        HideCursor();
+        Console.Clear();
+        RenderHeader();
+        _bodyRow = HeaderHeight;
+    }
+
+    private void RenderHeader()
+    {
+        if (HeaderHeight == 0)
+            return;
+
+        var width = SafeWidth();
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        for (var index = 0; index < _headerLines.Count; index++)
+            WriteRow(index, _headerLines[index], width);
+        Console.ResetColor();
+        WriteRow(_headerLines.Count, new string('=', Math.Max(0, width - 1)), width);
+    }
+
+    // Writes one full row at (0,row) without a newline, padded/truncated to the
+    // visible width, so it never triggers a buffer scroll or leaves stale chars.
+    private static void WriteRow(int row, string text, int width)
+    {
+        var max = Math.Max(0, width - 1);
+        var content = text.Length > max ? text.Substring(0, max) : text.PadRight(max);
+        Console.SetCursorPosition(0, row);
+        Console.Write(content);
     }
 
     private void ReadKeys()
@@ -61,13 +128,14 @@ internal sealed class ConsoleModelViewer
             }
             if (key.Key == ConsoleKey.Enter)
             {
-                Console.WriteLine("Starting...");
                 var node = _flatNodes[_cursorIndex];
+                BeginRun();
                 _orchestrator.Run(node);
                 return;
             }
             if (key.Key == ConsoleKey.Q)
             {
+                Console.CursorVisible = true;
                 Environment.Exit(0);
             }
         }
@@ -86,15 +154,20 @@ internal sealed class ConsoleModelViewer
 
     private void DrawNode(IScriptNode node, int index)
     {
-        var depth = Depth(node);
-        var indent = new string(' ', 2 + depth * 2);
         var isCursor = index == _cursorIndex;
-        var marker = isCursor ? ">" : " ";
-
         var state = StateOf(node);
         Console.ForegroundColor = ColorFor(state, isCursor);
-        Console.WriteLine($"{indent}{marker} {Glyph(state)} {node.Name}{Suffix(state)}");
+        Console.WriteLine(BuildNodeText(node, index));
         Console.ResetColor();
+    }
+
+    private string BuildNodeText(IScriptNode node, int index)
+    {
+        var depth = Depth(node);
+        var indent = new string(' ', 2 + depth * 2);
+        var marker = index == _cursorIndex ? ">" : " ";
+        var state = StateOf(node);
+        return $"{indent}{marker} {Glyph(state)} {node.Name}{Suffix(state)}";
     }
 
     private void RebuildFlatNodes()
@@ -110,6 +183,51 @@ internal sealed class ConsoleModelViewer
             _flatNodes.Add(step);
         foreach (var childSuite in suite.ChildSuites)
             AppendNode(childSuite);
+    }
+
+    // Fix the window height so header + every node + footer fit, capped at the screen.
+    private void EnsureHeight()
+    {
+        try
+        {
+            var desired = DesiredHeight();
+            var wanted = Math.Min(desired, Console.LargestWindowHeight);
+            if (wanted < 1)
+                return;
+
+            if (wanted < Console.WindowHeight)
+            {
+                Console.SetWindowSize(Console.WindowWidth, wanted);
+                Console.SetBufferSize(Console.BufferWidth, wanted);
+            }
+            else if (wanted > Console.WindowHeight)
+            {
+                Console.SetBufferSize(Console.BufferWidth, Math.Max(wanted, Console.BufferHeight));
+                Console.SetWindowSize(Console.WindowWidth, wanted);
+            }
+        }
+        catch
+        {
+            // output redirected or not a real console — leave size alone
+        }
+    }
+
+    // Header rows + one line per node + blank line + footer, plus a resting row.
+    private int DesiredHeight()
+    {
+        return HeaderHeight + _flatNodes.Count + 3;
+    }
+
+    private static int SafeWidth()
+    {
+        try { return Console.WindowWidth; }
+        catch { return 80; }
+    }
+
+    private static void HideCursor()
+    {
+        try { Console.CursorVisible = false; }
+        catch { }
     }
 
     private int Depth(IScriptNode node)
