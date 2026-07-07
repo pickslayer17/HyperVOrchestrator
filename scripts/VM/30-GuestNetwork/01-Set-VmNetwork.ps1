@@ -32,7 +32,7 @@ Write-Host "DNS set: $dns"
 
 # real rdp port this guest listens on -> state (host uses it as forward target)
 $vmRdpPort = (Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name PortNumber).PortNumber
-Write-Host "<<set::state.vm.rdpPort=$vmRdpPort>>"
+Write-Host "<<set::state.vm.rdpInPort=$vmRdpPort>>"
 
 # proxy: system (winhttp)
 netsh winhttp set proxy "$proxyHostPort"
