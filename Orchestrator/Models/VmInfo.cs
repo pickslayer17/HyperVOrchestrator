@@ -10,8 +10,13 @@ internal sealed class VmInfo
 
     [JsonPropertyName("natIp")]
     public string Ip { get; set; } = "";
-    public string ProxyPort { get; set; } = "";
-    public string RdpPort { get; set; } = "";
+
+    [JsonPropertyName("proxyPort")]
+    public string HostProxyPort { get; set; } = "";
+
+    [JsonPropertyName("rdpPort")]
+    public string RdpInPort { get; set; } = "";
+
     public string HostRdpForwardPort { get; set; } = "";
     public string InterfaceAlias { get; set; } = "";
 }

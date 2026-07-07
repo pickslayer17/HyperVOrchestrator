@@ -40,8 +40,8 @@ internal sealed class Initializer
         vm.InterfaceAlias = vmInfo.InterfaceAlias;
         vm.Ip = vmInfo.Ip;
         vm.natName = vmInfo.natName;
-        vm.ProxyPort = vmInfo.ProxyPort;
-        vm.RdpPort = vmInfo.RdpPort;
+        vm.HostProxyPort = vmInfo.HostProxyPort;
+        vm.RdpInPort = vmInfo.RdpInPort;
         vm.Running = vmInfo.Running;
         vm.HostRdpForwardPort = GetHostForwardPort();
 
@@ -110,6 +110,6 @@ internal sealed class Initializer
         onLine($"[INIT] VMs ({host.Vms.Count}):");
 
         var vm = stateKeeper.CurrentVm;
-        onLine($"[INIT] {vm.Name}  running={vm.Running}  ip={vm.Ip} rdp={vm.RdpPort} proxy={vm.ProxyPort} alias={vm.InterfaceAlias}");
+        onLine($"[INIT] {vm.Name}  running={vm.Running}  ip={vm.Ip} rdp={vm.RdpInPort} proxy={vm.HostProxyPort} alias={vm.InterfaceAlias}");
     }
 }
