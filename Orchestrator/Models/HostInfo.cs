@@ -7,5 +7,7 @@ internal sealed class HostInfo
     public string NatName { get; set; } = "";
     public string NatIp { get; set; } = "";
     public string ProxyPort { get; set; } = "";
+    public bool ProxyServerAlive { get; set; }
+    public int ProxyVmCount { get; set; }
     public Dictionary<string, VmInfo> Vms { get; set; } = new();
 }

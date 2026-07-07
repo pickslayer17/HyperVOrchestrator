@@ -21,6 +21,7 @@ HELP = """hyperv-netagent - commands:
   Set-ForwardPort  -vmip <ip> -portadress <listenPort> [-targetport <port>]
   RemoveMachine    -vmip <ip>
   GetMachineNames
+  Get-MachineHostForwardPort  -vmip <ip>
   Quit
   help"""
 
@@ -61,6 +62,8 @@ def apply(manager, cmd, opts):
         return "ok"
     if cmd == "GetMachineNames":
         return manager.machine_names()
+    if cmd == "Get-MachineHostForwardPort":
+        return manager.machine_host_forward_port(opts["vmip"])
     raise ValueError(f"unknown command: {cmd}")
 
 
@@ -162,7 +165,10 @@ def main():
 
     try:
         conn = Client(PIPE_ADDR, family="AF_PIPE")
-    except (FileNotFoundError, OSError):
+    except OSError as e:
+        if isinstance(e, PermissionError) or getattr(e, "winerror", None) == 5:
+            print("ERROR: access denied to the agent - it runs elevated, start this as Administrator")
+            sys.exit(1)
         conn = None
 
     if conn is None:
@@ -186,6 +192,12 @@ def main():
         if status == "ok" and payload:
             for name in payload:
                 print(name)
+    elif cmd == "Get-MachineHostForwardPort":
+        if status == "error":
+            print(f"ERROR: {payload}")
+            sys.exit(1)
+        if payload is not None:
+            print(payload)
     elif cmd == "Quit":
         print("server stopping.")
     elif status == "error":

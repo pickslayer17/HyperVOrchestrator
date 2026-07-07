@@ -44,8 +44,8 @@ internal sealed class Orchestrator
         var vm = state.CurrentVm;
         _viewer.SetHeader(new[]
         {
-            host is null ? "Host:" : $"Host:  Hyper-V={host.HyperV}  switch={host.SwitchName}  nat={host.NatName}  ip={host.NatIp}",
-            vm is null ? "VM:" : $"VM:  {vm.Name}  running={vm.Running}  ip={vm.Ip}  rdp={vm.RdpPort}  proxy={vm.ProxyPort}",
+            host is null ? "Host:" : $"Host:  Hyper-V={host.HyperV}  switch={host.SwitchName}  nat={host.NatName}  ip={host.NatIp}  proxy-srv={(host.ProxyServerAlive ? "up" : "down")}  vms={host.ProxyVmCount}",
+            vm is null ? "VM:" : $"VM:  {vm.Name}  running={vm.Running}  ip={vm.Ip}  rdp={vm.RdpPort}  fwd={vm.HostRdpForwardPort}  proxy={vm.ProxyPort}",
         });
     }
 

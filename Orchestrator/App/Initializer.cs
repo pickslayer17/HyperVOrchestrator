@@ -28,18 +28,22 @@ internal sealed class Initializer
         host.HyperV = GetHostHyperV();
         host.SwitchName = config.Network.SwitchName;
         host.NatName = GetHostNatSwitch();
+        host.NatIp = GetHostNatIp();
+        var proxyStatus = GetProxyStatus();
+        host.ProxyServerAlive = proxyStatus.Alive;
+        host.ProxyVmCount = proxyStatus.VmCount;
 
         var vm = new VmInfo{ Name = config.Vm.Name };
         host.Vms[vm.Name] = vm;
         state.SetCurrentVm(vm.Name);
         var vmInfo = GetVmInfo();
-        vm.HostRdpForwardPort = vmInfo.HostRdpForwardPort;
         vm.InterfaceAlias = vmInfo.InterfaceAlias;
         vm.Ip = vmInfo.Ip;
         vm.natName = vmInfo.natName;
         vm.ProxyPort = vmInfo.ProxyPort;
         vm.RdpPort = vmInfo.RdpPort;
         vm.Running = vmInfo.Running;
+        vm.HostRdpForwardPort = GetHostForwardPort();
 
         Print(state, onLine);
         return host;
@@ -69,6 +73,27 @@ internal sealed class Initializer
         var output = Execute("30-Get-VmInfo.ps1");
         var vm = JsonSerializer.Deserialize<VmInfo>(output, JsonOptions);
         return vm;
+    }
+
+    private string GetHostForwardPort()
+    {
+        var output = Execute("40-Get-ForwardPort.ps1");
+        return output.Trim();
+    }
+
+    private string GetHostNatIp()
+    {
+        var output = Execute("15-Get-HostIp.ps1");
+        return output.Trim();
+    }
+
+    private (bool Alive, int VmCount) GetProxyStatus()
+    {
+        var output = Execute("50-Get-ProxyStatus.ps1").Trim();
+        var parts = output.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var alive = parts.Length > 0 && parts[0] == "true";
+        var vmCount = parts.Length > 1 && int.TryParse(parts[1], out var parsed) ? parsed : 0;
+        return (alive, vmCount);
     }
 
     private string Execute(string scriptFile)

@@ -64,6 +64,13 @@ class Manager:
         with self._lock:
             return list(self._machines.keys())
 
+    def machine_host_forward_port(self, vmip):
+        with self._lock:
+            m = self._machines.get(vmip)
+            if not m or not m.forward:
+                return None
+            return m.forward.port
+
     def snapshot(self):
         with self._lock:
             return list(self._machines.values())
