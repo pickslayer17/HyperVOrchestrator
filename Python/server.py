@@ -22,6 +22,7 @@ HELP = """hyperv-netagent - commands:
   remove_machine           -vmip <ip>
   get_machine_names
   get_host_vm_forward_port -vmip <ip>
+  status
   quit
   help"""
 
@@ -155,6 +156,10 @@ def main():
     if cmd == "_serve":
         ipc = IpcListener(PIPE_ADDR, family="AF_PIPE")
         serve(ipc, "start_proxy", opts)
+        return
+
+    if cmd.lower() == "status":
+        print("alive" if is_live() else "dead")
         return
 
     if cmd == "quit":
