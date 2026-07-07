@@ -6,6 +6,6 @@ $vmIp                 = "@@state.vm.ip@@"
 $vmHostRdpForwardPort = @@state.vm.hostRdpForwardPort@@
 $vmRdpPort            = @@state.vm.rdpPort@@
 
-& python "$serverScript" AddMachine -vmip $vmIp
-& python "$serverScript" Set-ForwardPort -vmip $vmIp -portadress $vmHostRdpForwardPort -targetport $vmRdpPort
+& python "$serverScript" add_machine -vmip $vmIp
+& python "$serverScript" set_forward_port -vmip $vmIp -portadress $vmHostRdpForwardPort -targetport $vmRdpPort
 Write-Host "$vmIp registered: forward $vmHostRdpForwardPort -> ${vmIp}:$vmRdpPort."

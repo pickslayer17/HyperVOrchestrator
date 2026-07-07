@@ -16,13 +16,13 @@ DETACHED_PROCESS = 0x00000008
 CREATE_NEW_PROCESS_GROUP = 0x00000200
 
 HELP = """hyperv-netagent - commands:
-  Start-Proxy      -ip <ip> -port <port>
-  AddMachine       -vmip <ip>
-  Set-ForwardPort  -vmip <ip> -portadress <listenPort> [-targetport <port>]
-  RemoveMachine    -vmip <ip>
-  GetMachineNames
-  Get-MachineHostForwardPort  -vmip <ip>
-  Quit
+  start_proxy              -ip <ip> -port <port>
+  add_machine              -vmip <ip>
+  set_forward_port         -vmip <ip> -portadress <listenPort> [-targetport <port>]
+  remove_machine           -vmip <ip>
+  get_machine_names
+  get_host_vm_forward_port -vmip <ip>
+  quit
   help"""
 
 
@@ -46,24 +46,24 @@ def parse(argv):
 
 def apply(manager, cmd, opts):
     log("CMD", f"{cmd} {opts}")
-    if cmd == "Start-Proxy":
+    if cmd == "start_proxy":
         manager.start_proxy(opts["ip"], opts["port"])
         return "ok"
-    if cmd == "AddMachine":
+    if cmd == "add_machine":
         manager.add_machine(opts["vmip"])
         return "ok"
-    if cmd == "Set-ForwardPort":
+    if cmd == "set_forward_port":
         listen = opts.get("listenport") or opts.get("portadress")
         target = opts.get("targetport") or listen
         manager.set_forward_port(opts["vmip"], listen, target)
         return "ok"
-    if cmd == "RemoveMachine":
+    if cmd == "remove_machine":
         manager.remove_machine(opts["vmip"])
         return "ok"
-    if cmd == "GetMachineNames":
+    if cmd == "get_machine_names":
         return manager.machine_names()
-    if cmd == "Get-MachineHostForwardPort":
-        return manager.machine_host_forward_port(opts["vmip"])
+    if cmd == "get_host_vm_forward_port":
+        return manager.host_vm_forward_port(opts["vmip"])
     raise ValueError(f"unknown command: {cmd}")
 
 
@@ -75,9 +75,9 @@ def command_loop(ipc, manager, stop_event):
             break
         try:
             cmd, opts = conn.recv()
-            if cmd == "Quit":
+            if cmd == "quit":
                 conn.send(("ok", "stopping"))
-                log("SRV", "Quit received, shutting down")
+                log("SRV", "quit received, shutting down")
                 stop_event.set()
                 return
             resp = apply(manager, cmd, opts)
@@ -115,7 +115,7 @@ def serve(ipc, first_cmd, first_opts):
 
 
 def spawn_detached(ip, port):
-    args = [sys.executable, os.path.abspath(__file__), "_Serve", "-ip", str(ip), "-port", str(port)]
+    args = [sys.executable, os.path.abspath(__file__), "_serve", "-ip", str(ip), "-port", str(port)]
     subprocess.Popen(
         args,
         creationflags=DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP,
@@ -129,7 +129,7 @@ def spawn_detached(ip, port):
 def is_live():
     try:
         conn = Client(PIPE_ADDR, family="AF_PIPE")
-        conn.send(("GetMachineNames", {}))
+        conn.send(("get_machine_names", {}))
         conn.recv()
         conn.close()
         return True
@@ -152,12 +152,12 @@ def main():
         print(HELP)
         return
 
-    if cmd == "_Serve":
+    if cmd == "_serve":
         ipc = IpcListener(PIPE_ADDR, family="AF_PIPE")
-        serve(ipc, "Start-Proxy", opts)
+        serve(ipc, "start_proxy", opts)
         return
 
-    if cmd == "Quit":
+    if cmd == "quit":
         ans = input("are you sure? y/n: ").strip().lower()
         if ans != "y":
             print("cancelled")
@@ -172,7 +172,7 @@ def main():
         conn = None
 
     if conn is None:
-        if cmd == "Start-Proxy":
+        if cmd == "start_proxy":
             log("SRV", f"no live instance, spawning detached server: {opts}")
             spawn_detached(opts["ip"], opts["port"])
             if wait_live(10):
@@ -188,17 +188,17 @@ def main():
     conn.send((cmd, opts))
     status, payload = conn.recv()
     conn.close()
-    if cmd == "GetMachineNames":
+    if cmd == "get_machine_names":
         if status == "ok" and payload:
             for name in payload:
                 print(name)
-    elif cmd == "Get-MachineHostForwardPort":
+    elif cmd == "get_host_vm_forward_port":
         if status == "error":
             print(f"ERROR: {payload}")
             sys.exit(1)
         if payload is not None:
             print(payload)
-    elif cmd == "Quit":
+    elif cmd == "quit":
         print("server stopping.")
     elif status == "error":
         print(f"ERROR: {payload}")

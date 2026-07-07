@@ -10,6 +10,7 @@ internal sealed class StateKeeper
 
     public HostInfo? CurrentHost { get; private set; }
     public VmInfo? CurrentVm { get; private set; }
+    public ProxyForwardServerInfo? CurrentProxyForwardServer => CurrentHost?.ProxyForwardServer;
 
     public void AddHost(HostInfo hostInfo)
     {
