@@ -8,43 +8,48 @@ var configNatName = "Nat";
 // 1. check/add Nat. should be done always. without it impossible to continue. dependings = all
 if (host.NatNet == null)
 {
-    Net netInfo = null;
-    if (host.NetExecutor.NatExists(configNatName))
-    {
-        netInfo = host.NetExecutor.GetNetInfo(configNatName);
-    }
-    else
-    {
-        netInfo = host.NetExecutor.CreateNatNet(configNatName);
-    }
+    var netInfo = host.NetExecutor.NatExists(configNatName)
+        ? host.NetExecutor.GetNetInfo(configNatName)
+        : host.NetExecutor.CreateNatNet(configNatName);
+
     netInfo.HostNetInterface = host.NetExecutor.GetHostNetInterfaceInfo(configNatName);
+    host.NatNet = netInfo;
     host.NatNetInterface = netInfo.HostNetInterface;
-}//error - throw
+}
+if (host.NatNet == null)
+    throw new InvalidOperationException($"Nat '{configNatName}' is not available.");
 
 // 2. set static ip for host and vm in Nat
 // vm set its static ip through its own NetExecutor
+host.NetExecutor.SetStaticIp(host.NatNet.Name);
+foreach (var vm in host.VMs)
+    vm.NatNetInterface = vm.NetExecutor.SetStaticIp(host.NatNet.Name);
 
 // 3. Start python. dependings = all python steps, 5, for example
-if (host.PythonExecutor == null)
-{
-    if (host.PythonExecutor.IsAlive())
-    {
-    }
-    else
-    {
-    }
-}
+if (!host.PythonExecutor.IsAlive())
+    host.PythonExecutor.Start();
 
 // 4. Get Host nat free ip for proxy
-var freeHostNatPort = host.NetExecutor.GetFreePort(host.NatNet.Name);
+var proxyPort = host.NetExecutor.GetFreePort(host.NatNet.Name);
 
 // 5. Python start listen on this port
-host.PythonExecutor.StartProxyListening($"{host.NatNetInterface}{freeHostNatPort}");
+host.PythonExecutor.StartProxy(host.NatNetInterface.IP, proxyPort);
+var proxyAddress = $"{host.NatNetInterface.IP}:{proxyPort}";
 
-//6. set up proxy on VM(vm netexecutor) to host nat ip: proxyport
+foreach (var vm in host.VMs)
+{
+    //6. set up proxy on VM(vm netexecutor) to host nat ip: proxyport
+    vm.ProxyAddress = proxyAddress;
+    vm.NetExecutor.SetProxy(proxyAddress);
 
-// 7. Get host global free port. fwdPort. set to host model
+    // 7. Get host global free port. fwdPort. set to host model
+    var fwdPort = host.NetExecutor.GetFreePort(host.GlobalNetInterface.Alias);
+    host.FwdIpdsAndPorts[vm.NatNetInterface.IP] = fwdPort;
 
-//8 python listen to this port and forward to vm nat ip: 3389 (RDP)
+    //8 python listen to this port and forward to vm nat ip: 3389 (RDP)
+    var vmRdpPort = vm.NetExecutor.GetRdpPort();
+    host.PythonExecutor.StartForward(fwdPort, vm.NatNetInterface.IP, vmRdpPort);
 
-// 9. allow rdp on vm(could be donw through orchestrator
+    // 9. allow rdp on vm(could be donw through orchestrator
+    vm.NetExecutor.EnableRdp();
+}
