@@ -5,72 +5,54 @@ from proxy import ProxyHandler
 from forwarder import ForwardHandler
 from netlog import log
 
-
-class Machine:
-    def __init__(self, vmip):
-        self.vmip = vmip
-        self.forward = None
-        self.target_port = None
+FORWARD_BIND_IP = "0.0.0.0"
 
 
 class Manager:
     def __init__(self):
-        self._machines = {}
-        self._proxy = None
+        self._proxies = {}
+        self._forwards = {}
         self._lock = threading.RLock()
-        self.forward_bind_ip = "0.0.0.0"
-        self.on_empty = None
 
     def start_proxy(self, ip, port):
+        port = int(port)
+        key = f"{ip}:{port}"
         with self._lock:
-            if self._proxy:
-                self._proxy.stop()
-            self._proxy = Listener(ip, port, ProxyHandler(), name="proxy")
-            self._proxy.start()
-        log("MGR", f"proxy started {ip}:{port}")
+            existing = self._proxies.get(key)
+            if existing:
+                existing.stop()
+            listener = Listener(ip, port, ProxyHandler(), name=f"proxy:{key}")
+            listener.start()
+            self._proxies[key] = listener
+        log("MGR", f"proxy listening on {key}")
 
-    def set_forward_bind(self, ip):
+    def start_fwd(self, listen_port, target_ip, target_port):
+        listen_port = int(listen_port)
+        target_port = int(target_port)
         with self._lock:
-            self.forward_bind_ip = ip
-        log("MGR", f"forward bind set {ip}")
+            existing = self._forwards.get(listen_port)
+            if existing:
+                existing[0].stop()
+            listener = Listener(FORWARD_BIND_IP, listen_port,
+                                ForwardHandler(target_ip, target_port),
+                                name=f"fwd:{listen_port}")
+            listener.start()
+            self._forwards[listen_port] = (listener, target_ip, target_port)
+        log("MGR", f"forward {FORWARD_BIND_IP}:{listen_port} -> {target_ip}:{target_port}")
 
-    def add_machine(self, vmip):
+    def get_connections(self):
         with self._lock:
-            self._machines.setdefault(vmip, Machine(vmip))
-        log("MGR", f"machine added {vmip}")
+            proxies = [f"{listener.bind_ip}:{listener.port}" for listener in self._proxies.values()]
+            forwards = [
+                {"listen": f"{FORWARD_BIND_IP}:{listen_port}", "target": f"{target_ip}:{target_port}"}
+                for listen_port, (listener, target_ip, target_port) in self._forwards.items()
+            ]
+            return {"proxy": proxies, "fwd": forwards, "active": self._count_active()}
 
-    def set_forward_port(self, vmip, listen_port, target_port):
-        with self._lock:
-            m = self._machines.setdefault(vmip, Machine(vmip))
-            if m.forward:
-                m.forward.stop()
-            m.target_port = int(target_port)
-            m.forward = Listener(self.forward_bind_ip, listen_port,
-                                 ForwardHandler(vmip, target_port), name=f"fwd:{vmip}")
-            m.forward.start()
-        log("MGR", f"forward set {self.forward_bind_ip}:{listen_port} -> {vmip}:{target_port}")
-
-    def remove_machine(self, vmip):
-        with self._lock:
-            m = self._machines.pop(vmip, None)
-            if m and m.forward:
-                m.forward.stop()
-            empty = not self._machines
-        log("MGR", f"machine removed {vmip} (empty={empty})")
-        if empty and self.on_empty:
-            self.on_empty()
-
-    def machine_names(self):
-        with self._lock:
-            return list(self._machines.keys())
-
-    def host_vm_forward_port(self, vmip):
-        with self._lock:
-            m = self._machines.get(vmip)
-            if not m or not m.forward:
-                return None
-            return m.forward.port
-
-    def snapshot(self):
-        with self._lock:
-            return list(self._machines.values())
+    def _count_active(self):
+        total = 0
+        for listener in self._proxies.values():
+            total += listener.active
+        for listener, _, _ in self._forwards.values():
+            total += listener.active
+        return total

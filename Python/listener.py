@@ -13,6 +13,13 @@ class Listener:
         self._sock = None
         self._thread = None
         self._running = False
+        self._active = 0
+        self._active_lock = threading.Lock()
+
+    @property
+    def active(self):
+        with self._active_lock:
+            return self._active
 
     def start(self):
         try:
@@ -38,10 +45,15 @@ class Listener:
             threading.Thread(target=self._run_handler, args=(client, addr), daemon=True).start()
 
     def _run_handler(self, client, addr):
+        with self._active_lock:
+            self._active += 1
         try:
             self.handler(client, addr)
         except Exception as e:
             log("HANDLER", f"{self.name} error from {addr[0]}: {e}")
+        finally:
+            with self._active_lock:
+                self._active -= 1
 
     def stop(self):
         self._running = False
