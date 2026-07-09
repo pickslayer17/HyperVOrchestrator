@@ -17,7 +17,7 @@ HELP = """hyperv-netagent - commands:
   start
   stop
   start_proxy      -ip <ip> -port <port>
-  start_fwd        -port <listenPort> -targetip <ip> -targetport <port>
+  start_fwd        -ip <bindIp> -port <listenPort> -targetip <ip> -targetport <port>
   get_connections
   is_alive
   help"""
@@ -47,7 +47,7 @@ def apply(manager, cmd, opts):
         manager.start_proxy(opts["ip"], opts["port"])
         return "ok"
     if cmd == "start_fwd":
-        manager.start_fwd(opts["port"], opts["targetip"], opts["targetport"])
+        manager.start_fwd(opts["ip"], opts["port"], opts["targetip"], opts["targetport"])
         return "ok"
     if cmd == "get_connections":
         return manager.get_connections()

@@ -2,7 +2,7 @@ namespace ConsoleApp1.NetworkModel;
 
 public class Net
 {
-    public string Name;
+    public string Alias;
     public NetInterface HostNetInterface;
     public List<NetInterface> NetInterfaces = new();
 

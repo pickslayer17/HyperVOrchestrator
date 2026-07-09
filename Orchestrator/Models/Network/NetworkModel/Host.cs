@@ -4,13 +4,13 @@ namespace ConsoleApp1.NetworkModel;
 
 public class Host
 {
-    public List<VM> VMs;
-    public PythonExecutor PythonExecutor;
-    public NetExecutor NetExecutor;
+    public List<VM> VMs = new();
+    public PythonExecutor PythonExecutor = new();
+    public NetExecutor NetExecutor = new();
 
-    public Dictionary<string, int> FwdIpdsAndPorts;
+    public Dictionary<string, int> FwdIpdsAndPorts = new();
     public NetInterface GlobalNetInterface;
     public NetInterface NatNetInterface;
-    
+
     public Net NatNet;
 }

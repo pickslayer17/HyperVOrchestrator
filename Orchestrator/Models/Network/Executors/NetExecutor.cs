@@ -1,4 +1,4 @@
-﻿using ConsoleApp1.NetworkModel;
+using ConsoleApp1.NetworkModel;
 using System.Net;
 
 namespace ConsoleApp1.Executors;
@@ -35,7 +35,7 @@ public class NetExecutor
         return true;
     }
 
-    public void SetStaticIp(string netName)
+    public NetInterface SetStaticIp(string alias)
     {
         // create some IP -> var ip;
         string ip = "";
@@ -44,7 +44,18 @@ public class NetExecutor
             //some logic to get ips until its not free
         }
 
-       //script;
+        //script;
+        return null;
+    }
+
+    public void SetProxy(string proxyAddress)
+    {
+        //script;
+    }
+
+    public void EnableRdp()
+    {
+        //script;
     }
 
     public int GetFreePort(string netName)
@@ -55,7 +66,7 @@ public class NetExecutor
 
     public Net GetNetInfo(string natName)
     {
-        //script; fill 
+        //script; fill
         return null;
     }
 

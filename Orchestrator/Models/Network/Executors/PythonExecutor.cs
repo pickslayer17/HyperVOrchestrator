@@ -1,14 +1,25 @@
-﻿namespace ConsoleApp1.Executors;
+namespace ConsoleApp1.Executors;
 
 public class PythonExecutor
 {
     public bool IsAlive()
     {
-       //script
+        //script
         return true;
     }
 
-    public void StartProxyListening(string addressfrom)
-    {//sccript to python
+    public void Start()
+    {
+        //script
+    }
+
+    public void StartProxy(string ip, int port)
+    {
+        //script to python
+    }
+
+    public void StartForward(string bindIp, int listenPort, string targetIp, int targetPort)
+    {
+        //script to python
     }
 }
