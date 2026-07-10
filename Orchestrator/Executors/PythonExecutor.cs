@@ -1,4 +1,4 @@
-namespace ConsoleApp1.Executors;
+namespace Orchestrator.Executors;
 
 public class PythonExecutor
 {

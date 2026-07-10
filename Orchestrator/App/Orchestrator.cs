@@ -16,7 +16,7 @@ internal sealed class Orchestrator
     private readonly ConsoleModelViewer _viewer;
     private readonly Logger _logger;
     private readonly Step? _firstStep;
-    private HostInfo _hostInfo = new();
+    private Host _host = new();
 
     public Orchestrator(AppConfig config, string scriptsRoot, string vmSuitesDir)
     {
@@ -41,20 +41,20 @@ internal sealed class Orchestrator
     {
         var state = _runManager.StateKeeper;
         var host = state.CurrentHost;
-        var server = state.CurrentProxyForwardServer;
+        var server = host?.PythonServer;
         var vm = state.CurrentVm;
         _viewer.SetHeader(new[]
         {
-            host is null ? "Host:" : $"Host:  Hyper-V={host.HyperV}  switch={host.SwitchName}  nat={host.NatName}  ip={host.NatIp}",
-            server is null ? "Proxy-Forward Server:" : $"Proxy-Forward Server:  {(server.Alive ? "up" : "down")}  vms={server.VmCount}",
-            vm is null ? "VM:" : $"VM:  {vm.Name}  running={vm.Running}  ip={vm.Ip}  rdpInPort={vm.RdpInPort}  hostFwdPort={vm.HostRdpForwardPort}  hostProxyPort={vm.HostProxyPort}",
+            host is null ? "Host:" : $"Host:  switch={host.SwitchName}  nat={host.NatNet?.Alias}  ip={host.NatNetInterface?.IP}",
+            server is null ? "Python server:" : $"Python server:  {(server.Alive ? "up" : "down")}",
+            vm is null ? "VM:" : $"VM:  {vm.Name}  running={vm.Running}  ip={vm.NatNetInterface?.IP}  alias={vm.NatNetInterface?.Alias}  proxy={vm.ProxyAddress}",
         });
     }
 
     private void RunInitialization()
     {
         var initializer = new Initializer(_runManager);
-        _hostInfo = initializer.Run(Console.WriteLine);
+        _host = initializer.Run(Console.WriteLine);
     }
 
     private bool ConfirmFirstStep(Step step)

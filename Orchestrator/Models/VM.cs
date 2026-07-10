@@ -1,10 +1,11 @@
-using ConsoleApp1.Executors;
+using Orchestrator.Executors;
 
-namespace ConsoleApp1.NetworkModel;
+namespace Orchestrator.Models;
 
 public class VM
 {
     public string Name;
+    public bool Running;
     public string ProxyAddress;
     public NetInterface NatNetInterface;
 

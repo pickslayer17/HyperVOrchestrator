@@ -2,7 +2,7 @@ $ScriptTarget = "Host"
 $ErrorActionPreference = "Stop"
 
 $serverScript = "@@paths.pythonServer@@"
-$vmIp = "@@state.vm.ip@@"
+$vmIp = "@@state.vm.natNetInterface.ip@@"
 
 if (-not $vmIp) { return }
 

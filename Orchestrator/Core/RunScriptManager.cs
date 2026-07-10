@@ -18,7 +18,7 @@ internal sealed class RunScriptManager
         StateKeeper = stateKeeper;
         var host = new PowerShellHost();
         _preProcessor = new PreScriptProcessor(scriptsRoot, config, stateKeeper, host);
-        _postProcessor = new PostScriptProcessor(new ResultParser(stateKeeper));
+        _postProcessor = new PostScriptProcessor();
         _scriptRunner = new ScriptRunner(host);
     }
 

@@ -1,15 +1,12 @@
-using ConsoleApp1.NetworkModel;
-using System.Net;
+using Orchestrator.Models;
 
-namespace ConsoleApp1.Executors;
+namespace Orchestrator.Executors;
 
-// all non-specific stuff
 public class NetExecutor
 {
     public List<string> GetNatNames()
     {
         //script;
-        //return from_script;
         return null;
     }
 
@@ -31,17 +28,14 @@ public class NetExecutor
     public bool IsIpFree(string ip)
     {
         //script;
-        //return from_script;
         return true;
     }
 
     public NetInterface SetStaticIp(string alias)
     {
-        // create some IP -> var ip;
         string ip = "";
         while (!IsIpFree(ip))
         {
-            //some logic to get ips until its not free
         }
 
         //script;
@@ -66,7 +60,7 @@ public class NetExecutor
 
     public Net GetNetInfo(string natName)
     {
-        //script; fill
+        //script
         return null;
     }
 

@@ -18,80 +18,55 @@ internal sealed class Initializer
         _runManager = runManager;
     }
 
-    public HostInfo Run(Action<string> onLine)
+    public Host Run(Action<string> onLine)
     {
         var state = _runManager.StateKeeper;
         var config = AppConfig.Load(Program.RepoRoot);
-        var host = new HostInfo();
-        state.AddHost(host);
-        state.SetCurrentHost(host);
-        host.HyperV = GetHostHyperV();
-        host.SwitchName = config.Network.SwitchName;
-        host.NatName = GetHostNatSwitch();
-        host.NatIp = GetHostNatIp();
-        host.ProxyForwardServer = GetProxyStatus();
 
-        var vm = new VmInfo{ Name = config.Vm.Name };
-        host.Vms[vm.Name] = vm;
-        state.SetCurrentVm(vm.Name);
-        var vmInfo = GetVmInfo();
-        vm.InterfaceAlias = vmInfo.InterfaceAlias;
-        vm.Ip = vmInfo.Ip;
-        vm.natName = vmInfo.natName;
-        vm.HostProxyPort = vmInfo.HostProxyPort;
-        vm.RdpInPort = vmInfo.RdpInPort;
-        vm.Running = vmInfo.Running;
-        vm.HostRdpForwardPort = GetHostVmForwardPort();
+        var host = new Host();
+        state.SetCurrentHost(host);
+        host.SwitchName = config.Network.SwitchName;
+        host.NatNet = new Net { Alias = GetHostNatSwitch() };
+        host.NatNetInterface = new NetInterface { IP = GetHostNatIp() };
+        host.PythonServer.Alive = GetProxyAlive();
+
+        var vm = new VM { Name = config.Vm.Name };
+        host.VMs.Add(vm);
+        state.SetCurrentVm(vm);
+        var probe = GetVmInfo();
+        vm.Running = probe.Running;
+        vm.NatNetInterface = new NetInterface { Alias = probe.InterfaceAlias, IP = probe.NatIp };
+        vm.ProxyAddress = probe.ProxyPort;
+        RegisterForwardPort(host, vm);
 
         Print(state, onLine);
         return host;
     }
 
-    private bool GetHostHyperV()
+    private void RegisterForwardPort(Host host, VM vm)
     {
-        var output = Execute("00-Get-HyperV.ps1");
-        return output.Trim().Equals("true", StringComparison.OrdinalIgnoreCase);
+        var raw = GetHostVmForwardPort();
+        if (!string.IsNullOrEmpty(vm.NatNetInterface?.IP) && int.TryParse(raw, out var port))
+            host.FwdIpdsAndPorts[vm.NatNetInterface.IP] = port;
     }
 
-    private string GetHostNatSwitch()
-    {
-        var output = Execute("10-Get-NatSwitch.ps1");
-        return output.Trim();
-    }
+    private string GetHostNatSwitch() => Execute("10-Get-NatSwitch.ps1").Trim();
 
-    private List<string> GetHostVmNames()
-    {
-        var output = Execute("20-Get-VmNames.ps1");
-        var vmNames = JsonSerializer.Deserialize<List<string>>(output, JsonOptions);
-        return vmNames ?? new List<string>();
-    }
+    private string GetHostNatIp() => Execute("15-Get-HostIp.ps1").Trim();
 
-    private VmInfo GetVmInfo()
-    {
-        var output = Execute("30-Get-VmInfo.ps1");
-        var vm = JsonSerializer.Deserialize<VmInfo>(output, JsonOptions);
-        return vm;
-    }
+    private string GetHostVmForwardPort() => Execute("40-Get-HostVMForwardPort.ps1").Trim();
 
-    private string GetHostVmForwardPort()
-    {
-        var output = Execute("40-Get-HostVMForwardPort.ps1");
-        return output.Trim();
-    }
-
-    private string GetHostNatIp()
-    {
-        var output = Execute("15-Get-HostIp.ps1");
-        return output.Trim();
-    }
-
-    private ProxyForwardServerInfo GetProxyStatus()
+    private bool GetProxyAlive()
     {
         var output = Execute("50-Get-ProxyStatus.ps1").Trim();
         var parts = output.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        var alive = parts.Length > 0 && parts[0] == "true";
-        var vmCount = parts.Length > 1 && int.TryParse(parts[1], out var parsed) ? parsed : 0;
-        return new ProxyForwardServerInfo { Alive = alive, VmCount = vmCount };
+        return parts.Length > 0 && parts[0] == "true";
+    }
+
+    private VmProbe GetVmInfo()
+    {
+        var output = Execute("30-Get-VmInfo.ps1");
+        return JsonSerializer.Deserialize<VmProbe>(output, JsonOptions) ?? new VmProbe();
     }
 
     private string Execute(string scriptFile)
@@ -101,13 +76,21 @@ internal sealed class Initializer
         return result.Output;
     }
 
-    private static void Print(StateKeeper stateKeeper, Action<string> onLine)
+    private static void Print(StateKeeper state, Action<string> onLine)
     {
-        var host = stateKeeper.CurrentHost;
-        onLine($"[INIT] Hyper-V: {host.HyperV}  NAT switch: {(string.IsNullOrEmpty(host.NatName) ? "<none>" : host.NatName)}");
-        onLine($"[INIT] VMs ({host.Vms.Count}):");
+        var host = state.CurrentHost!;
+        onLine($"[INIT] switch: {host.SwitchName}  nat: {(string.IsNullOrEmpty(host.NatNet?.Alias) ? "<none>" : host.NatNet.Alias)}  ip: {host.NatNetInterface?.IP}");
+        onLine($"[INIT] VMs ({host.VMs.Count}):");
 
-        var vm = stateKeeper.CurrentVm;
-        onLine($"[INIT] {vm.Name}  running={vm.Running}  ip={vm.Ip} rdp={vm.RdpInPort} proxy={vm.HostProxyPort} alias={vm.InterfaceAlias}");
+        var vm = state.CurrentVm!;
+        onLine($"[INIT] {vm.Name}  running={vm.Running}  ip={vm.NatNetInterface?.IP}  alias={vm.NatNetInterface?.Alias}  proxy={vm.ProxyAddress}");
+    }
+
+    private sealed class VmProbe
+    {
+        public bool Running { get; set; }
+        public string NatIp { get; set; } = "";
+        public string InterfaceAlias { get; set; } = "";
+        public string ProxyPort { get; set; } = "";
     }
 }

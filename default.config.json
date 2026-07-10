@@ -17,7 +17,8 @@
     "switchName": "",
     "natName": "",
     "dnsServer": "8.8.8.8",
-    "subnetPrefixLength": 24
+    "subnetPrefixLength": 24,
+    "forwardBind": "0.0.0.0"
   },
   "paths": {
     "vmDir": "",

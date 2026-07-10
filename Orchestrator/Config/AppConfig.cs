@@ -50,6 +50,7 @@ public sealed class NetworkConfig
     public string NatName { get; init; } = "";
     public int SubnetPrefixLength { get; init; }
     public string DnsServer { get; init; } = "";
+    public string ForwardBind { get; init; } = "";
 }
 
 public sealed class PathsConfig

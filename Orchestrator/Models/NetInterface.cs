@@ -1,4 +1,4 @@
-namespace ConsoleApp1.NetworkModel;
+namespace Orchestrator.Models;
 
 public class NetInterface
 {
