@@ -23,32 +23,75 @@ internal sealed class Initializer
         var state = _runManager.StateKeeper;
         var config = AppConfig.Load(Program.RepoRoot);
 
+        // create NetWorkModels folder in Models folder
+        // all new models execpt executor models are moving to Models/NetWorkModels
         var host = new Host();
         state.SetCurrentHost(host);
-        host.SwitchName = config.Network.SwitchName;
-        host.NatNet = new Net { Alias = GetHostNatSwitch() };
-        host.NatNetInterface = new NetInterface { IP = GetHostNatIp() };
+        
+        // need to check inf natsdwitch and nat net exist and get existing one.
+        // config is for new net only .
+        // before GetHostNatSwitch - need to add step to check if exists. 
+        // so no need to check in _system scripts anymore - all checks will be here - in C#
+       
+        host.NatNet = new Net { Alias = GetHostNatSwitch() }; // host.NexExecutor.GetHostNatSwitch()
+        // all methods which work with _system scripts - are going to NexEcecutor or PythonServer.Python 
+        // it depends on who performs the action
+
+        host.SwitchName = config.Network.SwitchName; 
+        host.NatNetInterface = new NetInterface { IP = GetHostNatIp() }; //host.NexExecutor.GetHostNatIP()
+
+        // host.PythonServer.Python.GetProxyAlive();
         host.PythonServer.Alive = GetProxyAlive();
 
-        var vm = new VM { Name = config.Vm.Name };
-        host.VMs.Add(vm);
-        state.SetCurrentVm(vm);
-        var probe = GetVmInfo();
-        vm.Running = probe.Running;
-        vm.NatNetInterface = new NetInterface { Alias = probe.InterfaceAlias, IP = probe.NatIp };
-        vm.ProxyAddress = probe.ProxyPort;
-        RegisterForwardPort(host, vm);
+        // add method(and script to method) to get all vm on machine
+        // since we dont verify existing in scripts anymore - check should be here
+
+        // add foreach for all vmNames on host
+        // 
+        var actualVmNamess = host.NetExecutor.GetVMNames();
+        foreach(var vmName in actualVmNamess)
+        {
+            var vm = new VM { Name = vmName };
+            host.VMs.Add(vm);
+        }
+
+        // in future we planning to choose the name of VM we want to work with
+        var currentVmName = config.Vm.Name;
+        var currentVm = host.VMs.First(vm => vm.Name == currentVmName);
+        state.SetCurrentVm(currentVm);
+
+
+        var currentVmInfo = GetVmInfo(); // vm.NetExecutor.GetNetworkInfo() - I've changed proxyPort - to ProxyAddress in Probe mode
+        // rename  VmProbe to VmFSModel (FS - from script). make a rule: data from script should come in FSModel class. except cases when data is too simple(1-2 values)
+        // also move VmFSModel to a new folder FSModels-create it in root directory
+        
+        currentVm.Running = currentVmInfo.Running;
+
+        // it seems like NetInterface become more complicated - now it has 3 fields. 
+        // so create a differnt request like vm.NetExecutor.GetNetInterfaceInfo() which would return NetInterfaceFSModel with 3 fields accoriding to NetInterface
+        currentVm.NatNetInterface = new NetInterface { Alias = currentVmInfo.InterfaceAlias, IP = currentVmInfo.NatIp };
+        
+        // i renamed proxyPort to ProxyAddress
+        currentVm.ProxyAddress = currentVmInfo.ProxyAddress;
+
+        // this part definitely should be written from zero
+        // we have new mechanism
+        // host.PythonServer.Python.GetAllConnections() - i think we have this method.
+        // after that we can easyli find in that connections if we have a forwatd connection for our machine by ip
+        // and we will see the forward port
+        // if there is no such connection - we leave port as empty and add nothing to FwdIpdsAndPorts
+        // actually, the dcitionary FwdIpdsAndPorts should be inside PythonSerer model not in Host model - move 
+        var raw = GetHostVmForwardPort();
+        if (!string.IsNullOrEmpty(currentVm.NatNetInterface?.IP) && int.TryParse(raw, out var port))
+            host.FwdIpdsAndPorts[currentVm.NatNetInterface.IP] = port;
+
+
+
 
         Print(state, onLine);
         return host;
     }
 
-    private void RegisterForwardPort(Host host, VM vm)
-    {
-        var raw = GetHostVmForwardPort();
-        if (!string.IsNullOrEmpty(vm.NatNetInterface?.IP) && int.TryParse(raw, out var port))
-            host.FwdIpdsAndPorts[vm.NatNetInterface.IP] = port;
-    }
 
     private string GetHostNatSwitch() => Execute("10-Get-NatSwitch.ps1").Trim();
 
@@ -91,6 +134,6 @@ internal sealed class Initializer
         public bool Running { get; set; }
         public string NatIp { get; set; } = "";
         public string InterfaceAlias { get; set; } = "";
-        public string ProxyPort { get; set; } = "";
+        public string ProxyAddress { get; set; } = "";
     }
 }
