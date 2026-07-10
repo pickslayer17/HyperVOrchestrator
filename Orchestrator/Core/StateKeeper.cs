@@ -1,5 +1,5 @@
 using System.Reflection;
-using Orchestrator.Models;
+using Orchestrator.Models.NetWorkModels;
 
 namespace Orchestrator.Core;
 

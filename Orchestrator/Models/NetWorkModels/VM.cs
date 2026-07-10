@@ -1,6 +1,6 @@
 using Orchestrator.Executors;
 
-namespace Orchestrator.Models;
+namespace Orchestrator.Models.NetWorkModels;
 
 public class VM
 {

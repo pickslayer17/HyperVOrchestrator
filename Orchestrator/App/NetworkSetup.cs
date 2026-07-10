@@ -1,5 +1,5 @@
 using Orchestrator.Config;
-using Orchestrator.Models;
+using Orchestrator.Models.NetWorkModels;
 
 namespace Orchestrator.App;
 
@@ -82,7 +82,7 @@ public class NetworkSetup
     private void ForwardVmRdp(string bind, int forwardPort, string vmIp)
     {
         _host.PythonServer.Python.StartForward(bind, forwardPort, vmIp, 3389);
-        _host.FwdIpdsAndPorts[vmIp] = forwardPort;
+        _host.PythonServer.FwdIpdsAndPorts[vmIp] = forwardPort;
     }
 
     private void EnableVmRdp(VM vm)

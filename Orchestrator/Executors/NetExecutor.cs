@@ -1,4 +1,5 @@
-using Orchestrator.Models;
+using Orchestrator.FSModels;
+using Orchestrator.Models.NetWorkModels;
 
 namespace Orchestrator.Executors;
 
@@ -7,7 +8,7 @@ public class NetExecutor
     public List<string> GetNatNames()
     {
         //script;
-        return null;
+        return new List<string>();
     }
 
     public bool NatExists(string name)
@@ -68,5 +69,35 @@ public class NetExecutor
     {
         //script;
         return null;
+    }
+
+    public string GetHostNatSwitch()
+    {
+        //script: 10-Get-NatSwitch.ps1
+        return "";
+    }
+
+    public string GetHostNatIP()
+    {
+        //script: 15-Get-HostIp.ps1
+        return "";
+    }
+
+    public List<string> GetVMNames()
+    {
+        //script: 20-Get-VmNames.ps1
+        return new List<string>();
+    }
+
+    public VmFSModel GetNetworkInfo()
+    {
+        //script: 30-Get-VmInfo.ps1
+        return new VmFSModel();
+    }
+
+    public NetInterfaceFSModel GetNetInterfaceInfo()
+    {
+        //script: guest net interface (3 fields)
+        return new NetInterfaceFSModel();
     }
 }

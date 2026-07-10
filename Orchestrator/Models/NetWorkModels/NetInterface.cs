@@ -1,4 +1,4 @@
-namespace Orchestrator.Models;
+namespace Orchestrator.Models.NetWorkModels;
 
 public class NetInterface
 {

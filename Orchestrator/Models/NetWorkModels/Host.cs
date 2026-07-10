@@ -1,6 +1,6 @@
 using Orchestrator.Executors;
 
-namespace Orchestrator.Models;
+namespace Orchestrator.Models.NetWorkModels;
 
 public class Host
 {
@@ -9,7 +9,6 @@ public class Host
     public NetExecutor NetExecutor = new();
     public PythonServer PythonServer = new();
 
-    public Dictionary<string, int> FwdIpdsAndPorts = new();
     public NetInterface GlobalNetInterface;
     public NetInterface NatNetInterface;
 

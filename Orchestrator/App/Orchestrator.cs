@@ -1,6 +1,7 @@
 using Orchestrator.Config;
 using Orchestrator.Core;
 using Orchestrator.Models;
+using Orchestrator.Models.NetWorkModels;
 
 namespace Orchestrator.App;
 
