@@ -1,5 +1,5 @@
 # host: is the Hyper-V role present/usable -> "true" | "false"
-$ScriptTarget = "Host"
+$ScriptTarget = "@@state.executor.target@@"
 $ErrorActionPreference = "Stop"
 
 $hyperVPresent = [bool](Get-Command Get-VM -ErrorAction SilentlyContinue)

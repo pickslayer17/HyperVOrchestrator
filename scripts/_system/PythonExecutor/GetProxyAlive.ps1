@@ -1,5 +1,5 @@
 # host: is the python agent alive -> "true" | "false"
-$ScriptTarget = "Host"
+$ScriptTarget = "@@state.executor.target@@"
 $ErrorActionPreference = "Stop"
 
 $serverScript = "@@paths.pythonServer@@"

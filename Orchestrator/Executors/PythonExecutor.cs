@@ -45,7 +45,8 @@ public class PythonExecutor
 
     private string Run(string scriptFile)
     {
+        RunManager!.StateKeeper.ExecutorTarget = "Host";
         var path = Path.Combine(Program.RepoRoot, "scripts", "_system", "PythonExecutor", scriptFile);
-        return RunManager!.ExecuteFileScript(path, _ => { }).Output;
+        return RunManager.ExecuteFileScript(path, _ => { }).Output;
     }
 }

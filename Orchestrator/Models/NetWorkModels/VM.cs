@@ -9,5 +9,5 @@ public class VM
     public string ProxyAddress;
     public NetInterface NatNetInterface;
 
-    public NetExecutor NetExecutor = new();
+    public NetExecutor NetExecutor;
 }

@@ -14,6 +14,7 @@ internal sealed class TargetWrapDecorator : IScriptDecorator
         $__rc = Invoke-Command -VMName '{3}' -Credential $__cred -ErrorAction Stop -ScriptBlock {{
         {0}
         }}
+        $__rc
         exit ($__rc | Select-Object -Last 1)
         }} catch {{ Write-Error $_.Exception.Message; exit 1 }}";
 

@@ -6,8 +6,8 @@ public class Host
 {
     public string SwitchName;
     public List<VM> VMs = new();
-    public NetExecutor NetExecutor = new();
-    public HyperVExecutor HyperVExecutor = new();
+    public NetExecutor NetExecutor;
+    public HyperVExecutor HyperVExecutor;
     public PythonServer PythonServer = new();
 
     public NetInterface GlobalNetInterface;

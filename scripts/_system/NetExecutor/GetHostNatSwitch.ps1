@@ -1,5 +1,5 @@
 # host: name of the existing NAT, or "" if none
-$ScriptTarget = "Host"
+$ScriptTarget = "@@state.executor.target@@"
 $ErrorActionPreference = "Stop"
 
 $natName = ""

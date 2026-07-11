@@ -1,5 +1,5 @@
 # host: names of all NATs -> json array of strings
-$ScriptTarget = "Host"
+$ScriptTarget = "@@state.executor.target@@"
 $ErrorActionPreference = "Stop"
 
 $natNames = @(Get-NetNat -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name)

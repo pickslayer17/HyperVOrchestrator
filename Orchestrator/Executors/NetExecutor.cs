@@ -7,9 +7,15 @@ namespace Orchestrator.Executors;
 
 public class NetExecutor
 {
+    private readonly string Target ;
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
     internal RunScriptManager? RunManager;
+
+    public NetExecutor(string target)
+    {
+        Target = target;
+    }
 
     public List<string> GetNatNames()
     {
@@ -41,12 +47,16 @@ public class NetExecutor
     public VmFSModel GetNetworkInfo()
     {
         var output = Run("GetNetworkInfo.ps1");
+        if (!output.TrimStart().StartsWith('{'))
+            return new VmFSModel();
         return JsonSerializer.Deserialize<VmFSModel>(output, JsonOptions) ?? new VmFSModel();
     }
 
     public NetInterfaceFSModel GetNetInterfaceInfo()
     {
         var output = Run("GetNetInterfaceInfo.ps1");
+        if (!output.TrimStart().StartsWith('{'))
+            return new NetInterfaceFSModel();
         return JsonSerializer.Deserialize<NetInterfaceFSModel>(output, JsonOptions) ?? new NetInterfaceFSModel();
     }
 
@@ -103,6 +113,7 @@ public class NetExecutor
 
     private string Run(string scriptFile)
     {
+        RunManager.StateKeeper.ExecutorTarget = Target;
         var path = Path.Combine(Program.RepoRoot, "scripts", "_system", "NetExecutor", scriptFile);
         return RunManager!.ExecuteFileScript(path, _ => { }).Output;
     }

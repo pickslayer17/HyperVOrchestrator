@@ -1,5 +1,6 @@
 using Orchestrator.Config;
 using Orchestrator.Core;
+using Orchestrator.Executors;
 using Orchestrator.Models.NetWorkModels;
 
 namespace Orchestrator.App;
@@ -20,9 +21,9 @@ internal sealed class Initializer
 
         var host = new Host();
         state.SetCurrentHost(host);
-        host.NetExecutor.RunManager = _runManager;
-        host.HyperVExecutor.RunManager = _runManager;
-        host.PythonServer.Python.RunManager = _runManager;
+        host.NetExecutor = new NetExecutor("Host") { RunManager = _runManager };
+        host.HyperVExecutor = new HyperVExecutor { RunManager = _runManager };
+        host.PythonServer.Python = new PythonExecutor { RunManager = _runManager };
 
         if (host.NetExecutor.NatExists(config.Network.NatName))
         {
@@ -47,7 +48,7 @@ internal sealed class Initializer
         foreach (var vmName in actualVmNames)
         {
             var vm = new VM { Name = vmName };
-            vm.NetExecutor.RunManager = _runManager;
+            vm.NetExecutor = new NetExecutor("VM") { RunManager = _runManager };
             host.VMs.Add(vm);
         }
 
@@ -57,6 +58,7 @@ internal sealed class Initializer
 
         var currentVmInfo = currentVm.NetExecutor.GetNetworkInfo();
         currentVm.Running = currentVmInfo.Running;
+        currentVm.ProxyAddress = currentVmInfo.ProxyAddress;
 
         var netInterfaceInfo = currentVm.NetExecutor.GetNetInterfaceInfo();
         currentVm.NatNetInterface = new NetInterface
@@ -65,8 +67,6 @@ internal sealed class Initializer
             Alias = netInterfaceInfo.Alias,
             IP = netInterfaceInfo.IP,
         };
-
-        currentVm.ProxyAddress = currentVmInfo.ProxyAddress;
 
         var connections = host.PythonServer.Python.GetAllConnections();
         var vmIp = currentVm.NatNetInterface?.IP;

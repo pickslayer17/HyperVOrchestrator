@@ -23,7 +23,8 @@ public class HyperVExecutor
 
     private string Run(string scriptFile)
     {
+        RunManager!.StateKeeper.ExecutorTarget = "Host";
         var path = Path.Combine(Program.RepoRoot, "scripts", "_system", "HyperVExecutor", scriptFile);
-        return RunManager!.ExecuteFileScript(path, _ => { }).Output;
+        return RunManager.ExecuteFileScript(path, _ => { }).Output;
     }
 }

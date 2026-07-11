@@ -1,5 +1,5 @@
 # host: python agent connections -> json { proxy: [..], fwd: [{listen, target}], active }
-$ScriptTarget = "Host"
+$ScriptTarget = "@@state.executor.target@@"
 $ErrorActionPreference = "Stop"
 
 $serverScript = "@@paths.pythonServer@@"
