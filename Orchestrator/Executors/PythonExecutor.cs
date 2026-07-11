@@ -1,9 +1,27 @@
+using System.Text.Json;
+using Orchestrator.Core;
 using Orchestrator.FSModels;
 
 namespace Orchestrator.Executors;
 
 public class PythonExecutor
 {
+    private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
+
+    internal RunScriptManager? RunManager;
+
+    public bool GetProxyAlive()
+    {
+        var output = Run("GetProxyAlive.ps1");
+        return output.Trim().Equals("true", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public ConnectionsFSModel GetAllConnections()
+    {
+        var output = Run("GetAllConnections.ps1");
+        return JsonSerializer.Deserialize<ConnectionsFSModel>(output, JsonOptions) ?? new ConnectionsFSModel();
+    }
+
     public bool IsAlive()
     {
         //script
@@ -25,15 +43,9 @@ public class PythonExecutor
         //script to python
     }
 
-    public bool GetProxyAlive()
+    private string Run(string scriptFile)
     {
-        //script to python: is_alive
-        return false;
-    }
-
-    public ConnectionsFSModel GetAllConnections()
-    {
-        //script to python: get_connections
-        return new ConnectionsFSModel();
+        var path = Path.Combine(Program.RepoRoot, "scripts", "_system", "PythonExecutor", scriptFile);
+        return RunManager!.ExecuteFileScript(path, _ => { }).Output;
     }
 }

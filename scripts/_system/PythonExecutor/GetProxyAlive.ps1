@@ -1,0 +1,8 @@
+# host: is the python agent alive -> "true" | "false"
+$ScriptTarget = "Host"
+$ErrorActionPreference = "Stop"
+
+$serverScript = "@@paths.pythonServer@@"
+$alive = & python "$serverScript" is_alive 2>$null
+if ($LASTEXITCODE -ne 0) { "false"; return }
+"$alive".Trim()

@@ -1,3 +1,5 @@
+using System.Text.Json;
+using Orchestrator.Core;
 using Orchestrator.FSModels;
 using Orchestrator.Models.NetWorkModels;
 
@@ -5,30 +7,58 @@ namespace Orchestrator.Executors;
 
 public class NetExecutor
 {
+    private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
+
+    internal RunScriptManager? RunManager;
+
     public List<string> GetNatNames()
     {
-        //script;
-        return new List<string>();
+        var output = Run("GetNatNames.ps1");
+        return JsonSerializer.Deserialize<List<string>>(output, JsonOptions) ?? new List<string>();
     }
 
     public bool NatExists(string name)
     {
-        var natNames = GetNatNames();
-        if (natNames.Count > 0 && natNames.Contains(name))
-            return true;
+        return GetNatNames().Contains(name);
+    }
 
-        return false;
+    public string GetHostNatSwitch()
+    {
+        return Run("GetHostNatSwitch.ps1").Trim();
+    }
+
+    public string GetSwitchName()
+    {
+        return Run("GetSwitchName.ps1").Trim();
+    }
+
+    public NetInterfaceFSModel GetHostNatInterfaceInfo()
+    {
+        var output = Run("GetHostNatInterfaceInfo.ps1");
+        return JsonSerializer.Deserialize<NetInterfaceFSModel>(output, JsonOptions) ?? new NetInterfaceFSModel();
+    }
+
+    public VmFSModel GetNetworkInfo()
+    {
+        var output = Run("GetNetworkInfo.ps1");
+        return JsonSerializer.Deserialize<VmFSModel>(output, JsonOptions) ?? new VmFSModel();
+    }
+
+    public NetInterfaceFSModel GetNetInterfaceInfo()
+    {
+        var output = Run("GetNetInterfaceInfo.ps1");
+        return JsonSerializer.Deserialize<NetInterfaceFSModel>(output, JsonOptions) ?? new NetInterfaceFSModel();
     }
 
     public Net CreateNatNet(string name)
     {
-        // script
+        //script
         return null;
     }
 
     public bool IsIpFree(string ip)
     {
-        //script;
+        //script
         return true;
     }
 
@@ -39,18 +69,18 @@ public class NetExecutor
         {
         }
 
-        //script;
+        //script
         return null;
     }
 
     public void SetProxy(string proxyAddress)
     {
-        //script;
+        //script
     }
 
     public void EnableRdp()
     {
-        //script;
+        //script
     }
 
     public int GetFreePort(string netName)
@@ -67,37 +97,13 @@ public class NetExecutor
 
     public NetInterface GetHostNetInterfaceInfo(string natName)
     {
-        //script;
+        //script
         return null;
     }
 
-    public string GetHostNatSwitch()
+    private string Run(string scriptFile)
     {
-        //script: 10-Get-NatSwitch.ps1
-        return "";
-    }
-
-    public string GetHostNatIP()
-    {
-        //script: 15-Get-HostIp.ps1
-        return "";
-    }
-
-    public List<string> GetVMNames()
-    {
-        //script: 20-Get-VmNames.ps1
-        return new List<string>();
-    }
-
-    public VmFSModel GetNetworkInfo()
-    {
-        //script: 30-Get-VmInfo.ps1
-        return new VmFSModel();
-    }
-
-    public NetInterfaceFSModel GetNetInterfaceInfo()
-    {
-        //script: guest net interface (3 fields)
-        return new NetInterfaceFSModel();
+        var path = Path.Combine(Program.RepoRoot, "scripts", "_system", "NetExecutor", scriptFile);
+        return RunManager!.ExecuteFileScript(path, _ => { }).Output;
     }
 }
