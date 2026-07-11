@@ -55,7 +55,7 @@ internal sealed class Orchestrator
     private void RunInitialization()
     {
         var initializer = new Initializer(_runManager);
-        _host = initializer.Run(Console.WriteLine);
+        _host = initializer.Run();
     }
 
     private bool ConfirmFirstStep(Step step)
