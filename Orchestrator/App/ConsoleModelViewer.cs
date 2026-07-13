@@ -4,19 +4,87 @@ namespace Orchestrator.App;
 
 internal sealed class ConsoleModelViewer
 {
-    private const string Footer = "  [up/down] move   [Enter] run   [q] quit";
+    private const string Footer = "  [up/down] move   [Enter] run   [Esc] back   [q] quit";
+    private const string MenuFooter = "  [up/down] move   [Enter] select   [q] quit";
 
     private readonly Orchestrator _orchestrator;
-    private readonly ScriptModel _model;
+    private ScriptModel _model = new ScriptModel { Root = new Suite() };
     private readonly List<IScriptNode> _flatNodes = new List<IScriptNode>();
     private readonly List<string> _headerLines = new List<string>();
     private int _cursorIndex;
     private int _bodyRow;
 
-    public ConsoleModelViewer(Orchestrator orchestrator, ScriptModel model)
+    public ConsoleModelViewer(Orchestrator orchestrator)
     {
         _orchestrator = orchestrator;
+    }
+
+    public int ShowMenu(IReadOnlyList<string> items)
+    {
+        var cursor = 0;
+        while (true)
+        {
+            DrawMenu(items, cursor);
+            var key = Console.ReadKey(intercept: true);
+            if (key.Key == ConsoleKey.UpArrow && cursor > 0)
+                cursor--;
+            else if (key.Key == ConsoleKey.DownArrow && cursor < items.Count - 1)
+                cursor++;
+            else if (key.Key == ConsoleKey.Enter)
+                return cursor;
+            else if (key.Key == ConsoleKey.Escape)
+                return items.Count - 1;
+            else if (key.Key == ConsoleKey.Q)
+            {
+                Console.CursorVisible = true;
+                Environment.Exit(0);
+            }
+        }
+    }
+
+    private void DrawMenu(IReadOnlyList<string> items, int cursor)
+    {
+        HideCursor();
+        Console.Clear();
+        RenderHeader();
+        Console.SetCursorPosition(0, HeaderHeight);
+        for (var index = 0; index < items.Count; index++)
+        {
+            var marker = index == cursor ? ">" : " ";
+            Console.ForegroundColor = index == cursor ? ConsoleColor.White : ConsoleColor.Gray;
+            Console.WriteLine($"  {marker} {items[index]}");
+            Console.ResetColor();
+        }
+        Console.WriteLine();
+        Console.WriteLine(MenuFooter);
+    }
+
+    public void ShowTree(ScriptModel model)
+    {
         _model = model;
+        _cursorIndex = 0;
+        while (true)
+        {
+            Draw();
+            var key = Console.ReadKey(intercept: true);
+            if (key.Key == ConsoleKey.UpArrow)
+                MoveCursor(-1);
+            else if (key.Key == ConsoleKey.DownArrow)
+                MoveCursor(1);
+            else if (key.Key == ConsoleKey.Enter)
+            {
+                var node = _flatNodes[_cursorIndex];
+                BeginRun();
+                _orchestrator.Run(node);
+            }
+            else if (key.Key == ConsoleKey.Escape)
+                return;
+            else if (key.Key == ConsoleKey.Q)
+            {
+                Console.CursorVisible = true;
+                Environment.Exit(0);
+            }
+        }
     }
 
     public void SetHeader(IReadOnlyList<string> lines)
@@ -27,7 +95,7 @@ internal sealed class ConsoleModelViewer
 
     private int HeaderHeight => _headerLines.Count == 0 ? 0 : _headerLines.Count + 1;
 
-    public void Draw()
+    private void Draw()
     {
         RebuildFlatNodes();
         EnsureHeight();
@@ -41,7 +109,6 @@ internal sealed class ConsoleModelViewer
 
         Console.WriteLine();
         Console.WriteLine(Footer);
-        ReadKeys();
     }
 
     public void WriteOutput(string line)
@@ -100,10 +167,9 @@ internal sealed class ConsoleModelViewer
         WriteOutput("");
         WriteOutput("  -- done, press any key --");
         Console.ReadKey(intercept: true);
-        Draw();
     }
 
-    private void BeginRun()
+    public void BeginRun()
     {
         EnsureHeight();
         HideCursor();
@@ -133,36 +199,6 @@ internal sealed class ConsoleModelViewer
         Console.Write(content);
     }
 
-    private void ReadKeys()
-    {
-        while (true)
-        {
-            var key = Console.ReadKey(intercept: true);
-            if (key.Key == ConsoleKey.UpArrow)
-            {
-                MoveCursor(-1);
-                return;
-            }
-            if (key.Key == ConsoleKey.DownArrow)
-            {
-                MoveCursor(1);
-                return;
-            }
-            if (key.Key == ConsoleKey.Enter)
-            {
-                var node = _flatNodes[_cursorIndex];
-                BeginRun();
-                _orchestrator.Run(node);
-                return;
-            }
-            if (key.Key == ConsoleKey.Q)
-            {
-                Console.CursorVisible = true;
-                Environment.Exit(0);
-            }
-        }
-    }
-
     private void MoveCursor(int delta)
     {
         var next = _cursorIndex + delta;
@@ -171,7 +207,6 @@ internal sealed class ConsoleModelViewer
         if (next > _flatNodes.Count - 1)
             next = _flatNodes.Count - 1;
         _cursorIndex = next;
-        Draw();
     }
 
     private void DrawNode(IScriptNode node, int index)

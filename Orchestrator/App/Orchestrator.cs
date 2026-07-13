@@ -11,31 +11,186 @@ internal sealed class Orchestrator
     private const int CheckAlreadyDone = 2;
 
     private readonly AppConfig _config;
-    private readonly string _scriptsRoot;
     private readonly RunScriptManager _runManager;
-    private readonly ScriptModel _model;
+    private readonly ScriptModel _setupVmModel;
+    private readonly ScriptModel _installSoftModel;
     private readonly ConsoleModelViewer _viewer;
     private readonly Logger _logger;
     private readonly Step? _firstStep;
+    private ScriptModel _activeModel;
     private Host _host = new();
 
-    public Orchestrator(AppConfig config, string scriptsRoot, string vmSuitesDir)
+    public Orchestrator(AppConfig config, string scriptsRoot)
     {
         _config = config;
-        _scriptsRoot = scriptsRoot;
         _runManager = new RunScriptManager(config, scriptsRoot);
         var factory = new ScriptModelFactory();
-        _model = factory.Create(vmSuitesDir);
-        _firstStep = FindFirstStep(_model.Root);
-        _viewer = new ConsoleModelViewer(this, _model);
+        _setupVmModel = factory.Create(Path.Combine(scriptsRoot, "SetupVM"));
+        _installSoftModel = factory.Create(Path.Combine(scriptsRoot, "InstallSoft"));
+        _firstStep = FindFirstStep(_setupVmModel.Root);
+        _activeModel = _setupVmModel;
+        _viewer = new ConsoleModelViewer(this);
         _logger = new Logger();
     }
 
     public void Start()
     {
-        RunInitialization();
+        while (true)
+        {
+            if (!SelectHost())
+                return;
+            VmLoop();
+        }
+    }
+
+    private bool SelectHost()
+    {
+        _viewer.SetHeader(new[] { "Select host" });
+        var items = new List<string> { _config.Vm.Host, "0. Exit" };
+        var choice = _viewer.ShowMenu(items);
+        if (choice == items.Count - 1)
+        {
+            Console.CursorVisible = true;
+            Environment.Exit(0);
+        }
+
+        var initializer = new Initializer(_runManager);
+        _host = initializer.LoadHost();
         RefreshHeader();
-        _viewer.Draw();
+        return true;
+    }
+
+    private void VmLoop()
+    {
+        while (true)
+        {
+            var items = new List<string>();
+            for (var i = 0; i < _host.VMs.Count; i++)
+                items.Add($"{i + 1}. {_host.VMs[i].Name}");
+            items.Add("0. Back");
+
+            var choice = _viewer.ShowMenu(items);
+            if (choice == items.Count - 1)
+                return;
+
+            var vm = _host.VMs[choice];
+            var initializer = new Initializer(_runManager);
+            initializer.LoadVmInfo(_host, vm);
+            RefreshHeader();
+            VmActionsLoop(vm);
+        }
+    }
+
+    private void VmActionsLoop(VM vm)
+    {
+        var items = new List<string>
+        {
+            "1. Setup VM",
+            "2. Setup Network",
+            "3. Install Soft",
+            "4. Full Setup",
+            "0. Back",
+        };
+        while (true)
+        {
+            var choice = _viewer.ShowMenu(items);
+            if (choice == 0)
+                RunModel(_setupVmModel);
+            else if (choice == 1)
+                NetworkStepsLoop(vm);
+            else if (choice == 2)
+                RunModel(_installSoftModel);
+            else if (choice == 3)
+                FullSetup(vm);
+            else
+                return;
+        }
+    }
+
+    private void RunModel(ScriptModel model)
+    {
+        _activeModel = model;
+        _viewer.ShowTree(model);
+    }
+
+    private void NetworkStepsLoop(VM vm)
+    {
+        var networkSetup = new NetworkSetup(_host, _config);
+        var steps = networkSetup.GetSteps(vm);
+        var items = new List<string>();
+        for (var i = 0; i < steps.Count; i++)
+            items.Add($"{i + 1}. {steps[i].Name}");
+        items.Add("0. Back");
+
+        while (true)
+        {
+            var choice = _viewer.ShowMenu(items);
+            if (choice == items.Count - 1)
+                return;
+            RunNetworkStep(steps[choice].Name, steps[choice].Run);
+        }
+    }
+
+    private bool RunNetworkStep(string name, Action action)
+    {
+        _viewer.BeginRun();
+        _logger.SetContext("network/" + name);
+        WriteLine($"[NETWORK {name}]");
+        try
+        {
+            action();
+            WriteLine($"[NETWORK {name}: done]");
+            RefreshHeader();
+            _viewer.ResumeAfterRun();
+            return true;
+        }
+        catch (Exception exception)
+        {
+            WriteLine($"[NETWORK {name}: failed — {exception.Message}]");
+            RefreshHeader();
+            _viewer.ResumeAfterRun();
+            return false;
+        }
+    }
+
+    private void FullSetup(VM vm)
+    {
+        _viewer.BeginRun();
+        _activeModel = _setupVmModel;
+        if (!RunSuite(_setupVmModel.Root))
+        {
+            FinishFullSetup("Setup VM failed");
+            return;
+        }
+        _setupVmModel.Root.Recalculate();
+
+        var networkSetup = new NetworkSetup(_host, _config);
+        try
+        {
+            networkSetup.Configure(vm);
+        }
+        catch (Exception exception)
+        {
+            FinishFullSetup($"Setup Network failed — {exception.Message}");
+            return;
+        }
+        RefreshHeader();
+
+        _activeModel = _installSoftModel;
+        if (!RunSuite(_installSoftModel.Root))
+        {
+            FinishFullSetup("Install Soft failed");
+            return;
+        }
+        _installSoftModel.Root.Recalculate();
+
+        FinishFullSetup("Full setup done");
+    }
+
+    private void FinishFullSetup(string message)
+    {
+        WriteLine($"[FULL SETUP: {message}]");
+        _viewer.ResumeAfterRun();
     }
 
     private void RefreshHeader()
@@ -50,12 +205,6 @@ internal sealed class Orchestrator
             server is null ? "Python server:" : $"Python server:  {(server.Alive ? "up" : "down")}",
             vm is null ? "VM:" : $"VM:  {vm.Name}  running={vm.Running}  ip={vm.NatNetInterface?.IP}  alias={vm.NatNetInterface?.Alias}  proxy={vm.ProxyAddress}",
         });
-    }
-
-    private void RunInitialization()
-    {
-        var initializer = new Initializer(_runManager);
-        _host = initializer.Run();
     }
 
     private bool ConfirmFirstStep(Step step)
@@ -86,7 +235,7 @@ internal sealed class Orchestrator
         else if (node is Suite suite)
             RunSuite(suite);
 
-        _model.Root.Recalculate();
+        _activeModel.Root.Recalculate();
         _viewer.ResumeAfterRun();
     }
 

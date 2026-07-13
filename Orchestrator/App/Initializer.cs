@@ -14,7 +14,7 @@ internal sealed class Initializer
         _runManager = runManager;
     }
 
-    public Host Run()
+    public Host LoadHost()
     {
         var state = _runManager.StateKeeper;
         var config = AppConfig.Load(Program.RepoRoot);
@@ -52,16 +52,20 @@ internal sealed class Initializer
             host.VMs.Add(vm);
         }
 
-        var currentVmName = config.Vm.Name;
-        var currentVm = host.VMs.First(vm => vm.Name == currentVmName);
-        state.SetCurrentVm(currentVm);
+        return host;
+    }
 
-        var currentVmInfo = currentVm.NetExecutor.GetNetworkInfo();
-        currentVm.Running = currentVmInfo.Running;
-        currentVm.ProxyAddress = currentVmInfo.ProxyAddress;
+    public void LoadVmInfo(Host host, VM vm)
+    {
+        var state = _runManager.StateKeeper;
+        state.SetCurrentVm(vm);
 
-        var netInterfaceInfo = currentVm.NetExecutor.GetNetInterfaceInfo();
-        currentVm.NatNetInterface = new NetInterface
+        var vmInfo = vm.NetExecutor.GetNetworkInfo();
+        vm.Running = vmInfo.Running;
+        vm.ProxyAddress = vmInfo.ProxyAddress;
+
+        var netInterfaceInfo = vm.NetExecutor.GetNetInterfaceInfo();
+        vm.NatNetInterface = new NetInterface
         {
             IsDynamic = netInterfaceInfo.IsDynamic,
             Alias = netInterfaceInfo.Alias,
@@ -69,12 +73,10 @@ internal sealed class Initializer
         };
 
         var connections = host.PythonServer.Python.GetAllConnections();
-        var vmIp = currentVm.NatNetInterface?.IP;
+        var vmIp = vm.NatNetInterface?.IP;
         var forward = connections?.Fwd?.FirstOrDefault(f =>
             !string.IsNullOrEmpty(vmIp) && f.Target.StartsWith(vmIp + ":"));
         if (forward is not null && int.TryParse(forward.Listen.Split(':').Last(), out var forwardPort))
             host.PythonServer.FwdIpdsAndPorts[vmIp!] = forwardPort;
-
-        return host;
     }
 }

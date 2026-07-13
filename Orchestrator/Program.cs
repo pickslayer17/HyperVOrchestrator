@@ -8,15 +8,13 @@ internal static class Program
     public readonly static string RepoRoot = FindRepoRoot();
     private const string RepoRootMarker = "default.config.json";
     private const string ScriptsFolder = "scripts";
-    private const string VmSuitesFolder = "VM";
 
     private static void Main()
     {
         var scriptsRoot = Path.Combine(RepoRoot, ScriptsFolder);
-        var vmSuitesDir = Path.Combine(scriptsRoot, VmSuitesFolder);
         var config = AppConfig.Load(RepoRoot);
 
-        var orchestrator = new App.Orchestrator(config, scriptsRoot, vmSuitesDir);
+        var orchestrator = new App.Orchestrator(config, scriptsRoot);
         orchestrator.Start();
     }
 

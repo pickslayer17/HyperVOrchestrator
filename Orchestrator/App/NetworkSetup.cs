@@ -16,15 +16,31 @@ public class NetworkSetup
 
     public void Configure(VM vm)
     {
-        var natNet = EnsureNat(_config.Network.NatName);
-        SetStaticIps(natNet, vm);
-        StartPython();
-        var proxyPort = GetProxyPort(natNet);
-        var proxyAddress = StartProxy(_host.NatNetInterface.IP, proxyPort);
-        ApplyVmProxy(vm, proxyAddress);
-        var forwardPort = GetForwardPort(_host.GlobalNetInterface);
-        ForwardVmRdp(_config.Network.ForwardBind, forwardPort, vm.NatNetInterface.IP);
-        EnableVmRdp(vm);
+        foreach (var (_, action) in GetSteps(vm))
+            action();
+    }
+
+    public List<(string Name, Action Run)> GetSteps(VM vm)
+    {
+        return new List<(string, Action)>
+        {
+            ("Ensure NAT", () => EnsureNat(_config.Network.NatName)),
+            ("Set static IPs", () => SetStaticIps(EnsureNat(_config.Network.NatName), vm)),
+            ("Start python server", StartPython),
+            ("Start proxy + apply to VM", () =>
+            {
+                var natNet = EnsureNat(_config.Network.NatName);
+                var proxyPort = GetProxyPort(natNet);
+                var proxyAddress = StartProxy(_host.NatNetInterface.IP, proxyPort);
+                ApplyVmProxy(vm, proxyAddress);
+            }),
+            ("Forward VM RDP", () =>
+            {
+                var forwardPort = GetForwardPort(_host.GlobalNetInterface);
+                ForwardVmRdp(_config.Network.ForwardBind, forwardPort, vm.NatNetInterface.IP);
+            }),
+            ("Enable RDP in VM", () => EnableVmRdp(vm)),
+        };
     }
 
     private Net EnsureNat(string natName)
