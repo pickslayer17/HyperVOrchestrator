@@ -115,8 +115,8 @@ internal sealed class Orchestrator
 
     private void NetworkStepsLoop(VM vm)
     {
-        var networkSetup = new NetworkSetup(_host, _config);
-        var steps = networkSetup.GetSteps(vm);
+        var networkSetup = new NetworkSetup(_host, vm);
+        var steps = networkSetup.GetSteps();
         var items = new List<string>();
         for (var i = 0; i < steps.Count; i++)
             items.Add($"{i + 1}. {steps[i].Name}");
@@ -164,10 +164,10 @@ internal sealed class Orchestrator
         }
         _setupVmModel.Root.Recalculate();
 
-        var networkSetup = new NetworkSetup(_host, _config);
+        var networkSetup = new NetworkSetup(_host, vm);
         try
         {
-            networkSetup.Configure(vm);
+            networkSetup.Configure();
         }
         catch (Exception exception)
         {

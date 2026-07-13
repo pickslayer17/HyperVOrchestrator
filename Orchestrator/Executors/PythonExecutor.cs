@@ -24,29 +24,39 @@ public class PythonExecutor
 
     public bool IsAlive()
     {
-        //script
-        return true;
+        var output = Run("IsAlive.ps1");
+        return output.Trim().Equals("true", StringComparison.OrdinalIgnoreCase);
     }
 
     public void Start()
     {
-        //script
+        Run("Start.ps1");
     }
 
     public void StartProxy(string ip, int port)
     {
-        //script to python
+        Run("StartProxy.ps1", new Dictionary<string, string>
+        {
+            ["Ip"] = ip,
+            ["Port"] = port.ToString(),
+        });
     }
 
     public void StartForward(string bindIp, int listenPort, string targetIp, int targetPort)
     {
-        //script to python
+        Run("StartForward.ps1", new Dictionary<string, string>
+        {
+            ["BindIp"] = bindIp,
+            ["ListenPort"] = listenPort.ToString(),
+            ["TargetIp"] = targetIp,
+            ["TargetPort"] = targetPort.ToString(),
+        });
     }
 
-    private string Run(string scriptFile)
+    private string Run(string scriptFile, IReadOnlyDictionary<string, string>? args = null)
     {
         RunManager!.StateKeeper.ExecutorTarget = "Host";
         var path = Path.Combine(Program.RepoRoot, "scripts", "_system", "PythonExecutor", scriptFile);
-        return RunManager.ExecuteFileScript(path, _ => { }).Output;
+        return RunManager.ExecuteFileScript(path, _ => { }, args).Output;
     }
 }

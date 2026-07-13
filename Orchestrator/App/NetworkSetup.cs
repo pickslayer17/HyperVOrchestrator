@@ -6,50 +6,80 @@ namespace Orchestrator.App;
 public class NetworkSetup
 {
     private readonly Host _host;
-    private readonly AppConfig _config;
+    private readonly VM _vm;
 
-    public NetworkSetup(Host host, AppConfig config)
+    public NetworkSetup(Host host, VM vm)
     {
         _host = host;
-        _config = config;
+        _vm = vm;
     }
 
-    public void Configure(VM vm)
+    public void Configure()
     {
-        foreach (var (_, action) in GetSteps(vm))
+        foreach (var (_, action) in GetSteps())
             action();
     }
 
-    public List<(string Name, Action Run)> GetSteps(VM vm)
+    public List<(string Name, Action Run)> GetSteps()
     {
+        var network = AppConfig.Current.Network;
+
         return new List<(string, Action)>
         {
-            ("Ensure NAT", () => EnsureNat(_config.Network.NatName)),
-            ("Set static IPs", () => SetStaticIps(EnsureNat(_config.Network.NatName), vm)),
-            ("Start python server", StartPython),
+            ("Ensure NAT", () =>
+            {
+                EnsureNat(network.NatName, network.SwitchName, network.SubnetPrefixLength);
+                if (_host.NatNetInterface.IsDynamic)
+                    SetHostStaticIp(network.SubnetPrefixLength, network.DnsServer);
+            }),
+            ("Set static IPs", () =>
+            {
+                var gateway = _host.NatNetInterface.IP;
+                var vmIp = FindFreeIp(gateway);
+                var vmNetInterfaceInfo = _vm.NetExecutor.GetNetInterfaceInfo();
+                _vm.NatNetInterface = new NetInterface
+                {
+                    IsDynamic = vmNetInterfaceInfo.IsDynamic,
+                    Alias = vmNetInterfaceInfo.Alias,
+                    IP = vmNetInterfaceInfo.IP,
+                };
+                if (string.IsNullOrEmpty(vmNetInterfaceInfo.Alias))
+                    throw new InvalidOperationException($"Vm '{_vm.Name}' is not connected to nat '{network.NatName}'.");
+                SetVmStaticIp(vmNetInterfaceInfo.Alias, vmIp, gateway, network.SubnetPrefixLength, network.DnsServer);
+            }),
+            ("Start python server", () =>
+            {
+                StartPython();
+            }),
             ("Start proxy + apply to VM", () =>
             {
-                var natNet = EnsureNat(_config.Network.NatName);
-                var proxyPort = GetProxyPort(natNet);
-                var proxyAddress = StartProxy(_host.NatNetInterface.IP, proxyPort);
-                ApplyVmProxy(vm, proxyAddress);
+                var gateway = _host.NatNetInterface.IP;
+                var proxyPort = GetHostFreePort(_host.NatNet.Alias);
+                StartProxy(gateway, proxyPort);
+
+                var proxyAddress = $"{gateway}:{proxyPort}";
+                ApplyVmProxy(proxyAddress);
             }),
             ("Forward VM RDP", () =>
             {
-                var forwardPort = GetForwardPort(_host.GlobalNetInterface);
-                ForwardVmRdp(_config.Network.ForwardBind, forwardPort, vm.NatNetInterface.IP);
+                var forwardPort = GetHostFreePort(_host.GlobalNetInterface.Alias);
+                ForwardVmRdp(network.ForwardBind, forwardPort, _vm.NatNetInterface.IP, 3389);
             }),
-            ("Enable RDP in VM", () => EnableVmRdp(vm)),
+            ("Enable RDP in VM", () =>
+            {
+                EnableVmRdp();
+            }),
         };
     }
 
-    private Net EnsureNat(string natName)
+    private void EnsureNat(string natName, string switchName, int prefixLength)
     {
         if (_host.NatNet == null)
         {
+            var hostIp = GetHostNatIp();
             var netInfo = _host.NetExecutor.NatExists(natName)
                 ? _host.NetExecutor.GetNetInfo(natName)
-                : _host.NetExecutor.CreateNatNet(natName);
+                : _host.NetExecutor.CreateNatNet(natName, switchName, hostIp, prefixLength);
 
             netInfo.HostNetInterface = _host.NetExecutor.GetHostNetInterfaceInfo(natName);
             _host.NatNet = netInfo;
@@ -57,52 +87,75 @@ public class NetworkSetup
         }
         if (_host.NatNet == null)
             throw new InvalidOperationException($"Nat '{natName}' is not available.");
-
-        return _host.NatNet;
     }
 
-    private void SetStaticIps(Net natNet, VM vm)
+    private string GetHostNatIp()
     {
-        _host.NetExecutor.SetStaticIp(natNet.Alias);
-        vm.NatNetInterface = vm.NetExecutor.SetStaticIp(natNet.Alias);
+        var existing = _host.NetExecutor.GetHostNatInterfaceInfo();
+        if (!string.IsNullOrEmpty(existing.IP))
+            return existing.IP;
+        return AppConfig.Current.Network.DefaultNatHostIp;
+    }
+
+    private void SetHostStaticIp(int prefixLength, string dns)
+    {
+        _host.NatNetInterface = _host.NetExecutor.SetStaticIp(
+            _host.NatNetInterface.Alias,
+            _host.NatNetInterface.IP,
+            _host.NatNetInterface.IP,
+            prefixLength,
+            dns);
+        _host.NatNet.HostNetInterface = _host.NatNetInterface;
+    }
+
+    private void SetVmStaticIp(string alias, string vmIp, string gateway, int prefixLength, string dns)
+    {
+        _vm.NatNetInterface = _vm.NetExecutor.SetStaticIp(alias, vmIp, gateway, prefixLength, dns);
+    }
+
+    private string FindFreeIp(string gateway)
+    {
+        var subnet = gateway[..(gateway.LastIndexOf('.') + 1)];
+        for (var octet = 2; octet < 255; octet++)
+        {
+            var candidate = $"{subnet}{octet}";
+            if (_host.NetExecutor.IsIpFree(candidate))
+                return candidate;
+        }
+        throw new InvalidOperationException($"No free ip in subnet {subnet}0.");
     }
 
     private void StartPython()
     {
         if (!_host.PythonServer.Python.IsAlive())
             _host.PythonServer.Python.Start();
+        _host.PythonServer.Alive = true;
     }
 
-    private int GetProxyPort(Net natNet)
+    private int GetHostFreePort(string netAias)
     {
-        return _host.NetExecutor.GetFreePort(natNet.Alias);
+        return _host.NetExecutor.GetFreePort(netAias);
     }
 
-    private string StartProxy(string natIp, int proxyPort)
+    private void StartProxy(string natIp, int proxyPort)
     {
         _host.PythonServer.Python.StartProxy(natIp, proxyPort);
-        return $"{natIp}:{proxyPort}";
     }
 
-    private void ApplyVmProxy(VM vm, string proxyAddress)
+    private void ApplyVmProxy(string proxyAddress)
     {
-        vm.ProxyAddress = proxyAddress;
-        vm.NetExecutor.SetProxy(proxyAddress);
+        _vm.NetExecutor.SetProxy(proxyAddress);
+        _vm.ProxyAddress = proxyAddress;
     }
 
-    private int GetForwardPort(NetInterface globalInterface)
+    private void ForwardVmRdp(string bind, int forwardPort, string vmIp, int targetPort)
     {
-        return _host.NetExecutor.GetFreePort(globalInterface.Alias);
-    }
-
-    private void ForwardVmRdp(string bind, int forwardPort, string vmIp)
-    {
-        _host.PythonServer.Python.StartForward(bind, forwardPort, vmIp, 3389);
+        _host.PythonServer.Python.StartForward(bind, forwardPort, vmIp, targetPort);
         _host.PythonServer.FwdIpdsAndPorts[vmIp] = forwardPort;
     }
 
-    private void EnableVmRdp(VM vm)
+    private void EnableVmRdp()
     {
-        vm.NetExecutor.EnableRdp();
+        _vm.NetExecutor.EnableRdp();
     }
 }

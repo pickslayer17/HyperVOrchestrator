@@ -22,10 +22,10 @@ internal sealed class RunScriptManager
         _scriptRunner = new ScriptRunner(host);
     }
 
-    public Result ExecuteFileScript(string scriptPath, Action<string> onLine)
+    public Result ExecuteFileScript(string scriptPath, Action<string> onLine, IReadOnlyDictionary<string, string>? args = null)
     {
         var rawScript = FileHelper.ReadText(scriptPath);
-        var processedScript = _preProcessor.Process(rawScript);
+        var processedScript = _preProcessor.Process(rawScript, args);
         var lineHandler = _postProcessor.WrapLineHandler(onLine);
         var result = _scriptRunner.Run(processedScript, lineHandler);
         return result;

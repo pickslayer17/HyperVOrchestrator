@@ -171,7 +171,6 @@ internal sealed class ConsoleModelViewer
 
     public void BeginRun()
     {
-        EnsureHeight();
         HideCursor();
         Console.Clear();
         RenderHeader();

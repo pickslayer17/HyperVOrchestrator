@@ -60,61 +60,81 @@ public class NetExecutor
         return JsonSerializer.Deserialize<NetInterfaceFSModel>(output, JsonOptions) ?? new NetInterfaceFSModel();
     }
 
-    public Net CreateNatNet(string name)
+    public Net CreateNatNet(string name, string switchName, string hostIp, int prefixLength)
     {
-        //script
-        return null;
+        Run("CreateNatNet.ps1", new Dictionary<string, string>
+        {
+            ["NatName"] = name,
+            ["SwitchName"] = switchName,
+            ["HostIp"] = hostIp,
+            ["PrefixLength"] = prefixLength.ToString(),
+        });
+        return GetNetInfo(name);
     }
 
     public bool IsIpFree(string ip)
     {
-        //script
-        return true;
+        var output = Run("IsIpFree.ps1", new Dictionary<string, string> { ["Ip"] = ip });
+        return output.Trim().Equals("true", StringComparison.OrdinalIgnoreCase);
     }
 
-    public NetInterface SetStaticIp(string alias)
+    public NetInterface SetStaticIp(string alias, string ip, string gateway, int prefixLength, string dns)
     {
-        string ip = "";
-        while (!IsIpFree(ip))
+        Run("SetStaticIp.ps1", new Dictionary<string, string>
         {
-        }
-
-        //script
-        return null;
+            ["Alias"] = alias,
+            ["Ip"] = ip,
+            ["Gateway"] = gateway,
+            ["PrefixLength"] = prefixLength.ToString(),
+            ["Dns"] = dns,
+        });
+        return new NetInterface { IsDynamic = false, Alias = alias, IP = ip };
     }
 
     public void SetProxy(string proxyAddress)
     {
-        //script
+        Run("SetProxy.ps1", new Dictionary<string, string> { ["ProxyAddress"] = proxyAddress });
     }
 
     public void EnableRdp()
     {
-        //script
+        Run("EnableRdp.ps1");
     }
 
     public int GetFreePort(string netName)
     {
-        //script
-        return 0;
+        var output = Run("GetFreePort.ps1");
+        return int.Parse(output.Trim());
     }
 
     public Net GetNetInfo(string natName)
     {
-        //script
-        return null;
+        var output = Run("GetNetInfo.ps1", new Dictionary<string, string> { ["NatName"] = natName });
+        var model = JsonSerializer.Deserialize<NetFSModel>(output, JsonOptions) ?? new NetFSModel();
+        return new Net
+        {
+            Alias = model.Alias,
+            HostNetInterface = ToNetInterface(model.HostNetInterface),
+            NetInterfaces = model.NetInterfaces.Select(ToNetInterface).ToList(),
+        };
     }
 
     public NetInterface GetHostNetInterfaceInfo(string natName)
     {
-        //script
-        return null;
+        var output = Run("GetHostNetInterfaceInfo.ps1", new Dictionary<string, string> { ["NatName"] = natName });
+        var model = JsonSerializer.Deserialize<NetInterfaceFSModel>(output, JsonOptions) ?? new NetInterfaceFSModel();
+        return ToNetInterface(model);
     }
 
-    private string Run(string scriptFile)
+    private static NetInterface ToNetInterface(NetInterfaceFSModel model)
+    {
+        return new NetInterface { IsDynamic = model.IsDynamic, Alias = model.Alias, IP = model.IP };
+    }
+
+    private string Run(string scriptFile, IReadOnlyDictionary<string, string>? args = null)
     {
         RunManager.StateKeeper.ExecutorTarget = Target;
         var path = Path.Combine(Program.RepoRoot, "scripts", "_system", "NetExecutor", scriptFile);
-        return RunManager!.ExecuteFileScript(path, _ => { }).Output;
+        return RunManager!.ExecuteFileScript(path, _ => { }, args).Output;
     }
 }

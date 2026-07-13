@@ -12,6 +12,8 @@ public class AppConfig
     public FlauiConfig Flaui { get; init; } = new();
     public OfficeConfig Office { get; init; } = new();
 
+    public static AppConfig Current { get; private set; } = new();
+
     public static AppConfig Load(string repoRoot)
     {
         var config = new ConfigurationBuilder()
@@ -21,6 +23,7 @@ public class AppConfig
 
         var app = config.Get<AppConfig>() ?? new AppConfig();
         app.Paths.ResolveAgainst(repoRoot);
+        Current = app;
         var result = app;
         return result;
     }
@@ -48,6 +51,7 @@ public sealed class NetworkConfig
 {
     public string SwitchName { get; init; } = "";
     public string NatName { get; init; } = "";
+    public string DefaultNatHostIp { get; init; } = "";
     public int SubnetPrefixLength { get; init; }
     public string DnsServer { get; init; } = "";
     public string ForwardBind { get; init; } = "";

@@ -1,4 +1,4 @@
-{
+﻿{
   "vm": {
     "name": "",
     "host": "",
@@ -16,6 +16,7 @@
   "network": {
     "switchName": "",
     "natName": "",
+    "defaultNatHostIp": "192.168.100.1",
     "dnsServer": "8.8.8.8",
     "subnetPrefixLength": 24,
     "forwardBind": "0.0.0.0"
@@ -46,3 +47,4 @@
     "apps": ["Word"]
   }
 }
+
