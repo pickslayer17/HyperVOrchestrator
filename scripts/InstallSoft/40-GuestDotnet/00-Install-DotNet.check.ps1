@@ -1,6 +1,10 @@
-# vm reachable via psdirect
-
 $ScriptTarget = "VM"
 $ErrorActionPreference = "Stop"
 
-Write-Host "VM reachable via PSDirect."
+$dotnet = Get-Command dotnet -ErrorAction SilentlyContinue
+if ($dotnet) {
+    Write-Host "dotnet found: $(& dotnet --version)"
+    exit 2
+}
+Write-Host "dotnet not found."
+exit 0

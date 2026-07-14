@@ -115,16 +115,25 @@ internal sealed class ConsoleModelViewer
         try
         {
             var width = SafeWidth();
-            var lastRow = Console.WindowHeight - 1;
-            if (_bodyRow > lastRow)
+            var max = Math.Max(1, width - 1);
+            var chunks = line.Length == 0
+                ? new[] { line }
+                : Enumerable.Range(0, (line.Length + max - 1) / max)
+                    .Select(i => line.Substring(i * max, Math.Min(max, line.Length - i * max)))
+                    .ToArray();
+            foreach (var chunk in chunks)
             {
-                var bodyHeight = lastRow - HeaderHeight;
-                if (bodyHeight > 0)
-                    Console.MoveBufferArea(0, HeaderHeight + 1, Console.BufferWidth, bodyHeight, 0, HeaderHeight);
-                _bodyRow = lastRow;
+                var lastRow = Console.WindowHeight - 1;
+                if (_bodyRow > lastRow)
+                {
+                    var bodyHeight = lastRow - HeaderHeight;
+                    if (bodyHeight > 0)
+                        Console.MoveBufferArea(0, HeaderHeight + 1, Console.BufferWidth, bodyHeight, 0, HeaderHeight);
+                    _bodyRow = lastRow;
+                }
+                WriteRow(_bodyRow, chunk, width);
+                _bodyRow++;
             }
-            WriteRow(_bodyRow, line, width);
-            _bodyRow++;
         }
         catch
         {

@@ -25,10 +25,10 @@ internal sealed class InterpolateDecorator : IScriptDecorator
     private string ResolvePlaceholder(Match match)
     {
         var key = match.Groups[1].Value;
-        if (_configValues.TryGetValue(key, out var configValue))
+        if (_configValues.TryGetValue(key, out var configValue) && !string.IsNullOrEmpty(configValue))
             return configValue;
-        if (_stateKeeper.TryGet(key, out var stateValue))
+        if (_stateKeeper.TryGet(key, out var stateValue) && !string.IsNullOrEmpty(stateValue))
             return stateValue;
-        throw new InvalidOperationException($"Unknown placeholder: @@{key}@@");
+        throw new InvalidOperationException($"Placeholder @@{key}@@ is missing or empty in config and state");
     }
 }

@@ -3,25 +3,26 @@
 $ScriptTarget = "VM"
 $ErrorActionPreference = "Stop"
 
-$desktop    = "C:\Users\@@credentials.user@@\Desktop"
 $installDir = "@@paths.dotnetInstallDir@@"
-$channel    = "@@dotnet.channel@@"
-$quality    = "@@dotnet.quality@@"
+$channel    = "@@dotnet.version@@"
 $scriptUrl  = "@@dotnet.installScriptUrl@@"
 
 # download installer
-$installScript = "$desktop\dotnet-install.ps1"
+$installScript = "$env:TEMP\dotnet-install.ps1"
 Invoke-WebRequest -Uri $scriptUrl -OutFile $installScript
 
 # install sdk
-powershell -ExecutionPolicy Bypass -File $installScript -Channel $channel -Quality $quality -InstallDir $installDir
+powershell -ExecutionPolicy Bypass -File $installScript -Channel $channel -InstallDir $installDir
 
 # machine PATH
 $machinePath = [System.Environment]::GetEnvironmentVariable("PATH", "Machine")
-if ($machinePath -notlike "*dotnet*") {
+if (($machinePath -split ";") -notcontains $installDir) {
     [System.Environment]::SetEnvironmentVariable("PATH", "$machinePath;$installDir", "Machine")
 }
 $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine")
 
 & "$installDir\dotnet.exe" --version
 Write-Host "dotnet SDK installed."
+
+
+

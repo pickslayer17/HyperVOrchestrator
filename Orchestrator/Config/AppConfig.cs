@@ -89,6 +89,8 @@ public sealed class PathsConfig
 
 public sealed class DotnetConfig
 {
+    public string Version { get; init; } = "";
+    public string DesktopVersion { get; init; } = "";
     public string Channel { get; init; } = "";
     public string Quality { get; init; } = "";
     public string InstallScriptUrl { get; init; } = "";
