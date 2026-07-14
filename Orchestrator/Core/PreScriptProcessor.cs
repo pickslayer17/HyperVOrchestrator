@@ -25,11 +25,11 @@ internal sealed class PreScriptProcessor
 
     public string Process(string script, IReadOnlyDictionary<string, string>? args = null)
     {
-        var systemVariables = SystemVariablesReader.Read(script);
         var versioned = _versionDecorator.Format(script);
         var injected = _injectDecorator.Format(versioned);
         var interpolated = _interpolateDecorator.Format(injected);
         var parameterized = _paramsWrapDecorator.Format(interpolated, args);
+        var systemVariables = SystemVariablesReader.Read(interpolated);
         var rootWrapped = systemVariables.IsRootPriviledges ? _rootPriviledgeWrapDecorator.Format(parameterized) : parameterized;
         var targetWrapped = systemVariables.IsTargetVm ? _targetWrapDecorator.Format(parameterized) : rootWrapped;
         var result = targetWrapped;
