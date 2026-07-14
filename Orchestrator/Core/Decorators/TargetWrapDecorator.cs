@@ -1,21 +1,17 @@
-using System.Text.RegularExpressions;
-using Orchestrator.Helpers;
+using System.Text;
 
 namespace Orchestrator.Core.Decorators;
 
 internal sealed class TargetWrapDecorator : IScriptDecorator
 {
-    private const string TargetPattern = @"^\s*\$ScriptTarget\s*=\s*[""']?(Host|VM)[""']?";
-
     private const string WrapTemplate =
         @"$ErrorActionPreference = 'Stop'
         $__cred = New-Object System.Management.Automation.PSCredential('{1}', (ConvertTo-SecureString '{2}' -AsPlainText -Force))
         try {{
         Invoke-Command -VMName '{3}' -Credential $__cred -ErrorAction Stop -ScriptBlock {{
         $__file = Join-Path $env:TEMP (""orch_"" + [guid]::NewGuid().ToString('N') + "".ps1"")
-        Set-Content -Path $__file -Value @'
-{0}
-'@ -Encoding UTF8
+        $__content = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('{0}'))
+        Set-Content -Path $__file -Value $__content -Encoding UTF8
         & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $__file
         $__guestExit = $LASTEXITCODE
         Remove-Item $__file -Force -ErrorAction SilentlyContinue
@@ -37,20 +33,11 @@ internal sealed class TargetWrapDecorator : IScriptDecorator
 
     public string Format(string script)
     {
-        if (!IsVmTarget(script))
-            return script;
-
+        var encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(script));
         var user = Escape(_user);
         var password = Escape(_password);
         var vmName = Escape(_stateKeeper.CurrentVm?.Name ?? "");
-        var result = string.Format(WrapTemplate, script, user, password, vmName);
-        return result;
-    }
-
-    private static bool IsVmTarget(string script)
-    {
-        var match = RegexHelper.Get(TargetPattern, script, RegexOptions.Multiline | RegexOptions.IgnoreCase);
-        var result = match.Success && match.Groups[1].Value.Equals("VM", StringComparison.OrdinalIgnoreCase);
+        var result = string.Format(WrapTemplate, encoded, user, password, vmName);
         return result;
     }
 

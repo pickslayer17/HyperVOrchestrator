@@ -1,22 +1,20 @@
-using System.Text.RegularExpressions;
-using Orchestrator.Helpers;
+using System.Text;
 
 namespace Orchestrator.Core.Decorators;
 
 internal sealed class RootPriviledgeWrapDecorator : IScriptDecorator
 {
-    private const string RootPattern = @"^\s*\$RootPriviledges\s*=\s*\$(true|false)";
+    private const string BodyTemplate =
+@"try {{
+{0}
+}} catch {{ $_.Exception.Message }}";
 
     private const string WrapTemplate =
 @"$__guid = [guid]::NewGuid().ToString('N')
 $__taskFile = ""C:\temp\orch_$__guid.ps1""
 $__taskResult = ""C:\temp\orch_$__guid.out""
 New-Item -ItemType Directory -Path 'C:\temp' -Force | Out-Null
-$__body = @'
-try {{
-{0}
-}} catch {{ $_.Exception.Message }}
-'@
+$__body = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('{0}'))
 Set-Content -Path $__taskFile -Value $__body -Encoding UTF8
 $__tn = ""orch_root_$__guid""
 schtasks /create /tn $__tn /ru SYSTEM /sc once /st 00:00 /tr ""cmd /c powershell.exe -NoProfile -ExecutionPolicy Bypass -File $__taskFile > $__taskResult 2>&1"" /f 2>$null | Out-Null
@@ -32,17 +30,9 @@ if (Test-Path $__taskResult) {{ Get-Content $__taskResult | ForEach-Object {{ Wr
 
     public string Format(string script)
     {
-        if (!HasRootPriviledges(script))
-            return script;
-
-        var result = string.Format(WrapTemplate, script);
-        return result;
-    }
-
-    private static bool HasRootPriviledges(string script)
-    {
-        var match = RegexHelper.Get(RootPattern, script, RegexOptions.Multiline | RegexOptions.IgnoreCase);
-        var result = match.Success && match.Groups[1].Value.Equals("true", StringComparison.OrdinalIgnoreCase);
+        var body = string.Format(BodyTemplate, script);
+        var encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(body));
+        var result = string.Format(WrapTemplate, encoded);
         return result;
     }
 }
