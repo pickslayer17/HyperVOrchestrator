@@ -55,9 +55,10 @@ internal sealed class Initializer
         return host;
     }
 
-    public void LoadVmInfo(Host host, VM vm)
+    public void LoadVmInfo(VM vm)
     {
         var state = _runManager.StateKeeper;
+        var host = state.CurrentHost!;
         state.SetCurrentVm(vm);
 
         var vmInfo = vm.NetExecutor.GetNetworkInfo();
@@ -69,7 +70,7 @@ internal sealed class Initializer
         {
             IsDynamic = netInterfaceInfo.IsDynamic,
             Alias = netInterfaceInfo.Alias,
-            IP = netInterfaceInfo.IP,
+            IP = host.NetExecutor.GetVmIp(),
         };
 
         var connections = host.PythonServer.Python.GetAllConnections();

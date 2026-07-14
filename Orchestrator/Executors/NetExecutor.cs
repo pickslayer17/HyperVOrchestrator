@@ -60,6 +60,21 @@ public class NetExecutor
         return JsonSerializer.Deserialize<NetInterfaceFSModel>(output, JsonOptions) ?? new NetInterfaceFSModel();
     }
 
+    public string GetVmSwitchName()
+    {
+        return Run("GetVmSwitchName.ps1").Trim();
+    }
+
+    public void ConnectVmToNet(string netAlias)
+    {
+        Run("ConnectVmToNet.ps1", new Dictionary<string, string> { ["SwitchName"] = netAlias });
+    }
+
+    public string GetVmIp()
+    {
+        return Run("GetVmIp.ps1").Trim();
+    }
+
     public Net CreateNatNet(string name, string switchName, string hostIp, int prefixLength)
     {
         Run("CreateNatNet.ps1", new Dictionary<string, string>
@@ -91,9 +106,13 @@ public class NetExecutor
         return new NetInterface { IsDynamic = false, Alias = alias, IP = ip };
     }
 
-    public void SetProxy(string proxyAddress)
+    public void SetProxy(string proxyAddress, string vmUser)
     {
-        Run("SetProxy.ps1", new Dictionary<string, string> { ["ProxyAddress"] = proxyAddress });
+        Run("SetProxy.ps1", new Dictionary<string, string>
+        {
+            ["ProxyAddress"] = proxyAddress,
+            ["VmUser"] = vmUser,
+        });
     }
 
     public void EnableRdp()

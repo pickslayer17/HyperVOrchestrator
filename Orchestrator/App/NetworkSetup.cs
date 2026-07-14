@@ -1,17 +1,19 @@
 using Orchestrator.Config;
+using Orchestrator.Core;
 using Orchestrator.Models.NetWorkModels;
 
 namespace Orchestrator.App;
 
-public class NetworkSetup
+internal class NetworkSetup
 {
-    private readonly Host _host;
-    private readonly VM _vm;
+    private readonly StateKeeper _stateKeeper;
 
-    public NetworkSetup(Host host, VM vm)
+    private Host _host => _stateKeeper.CurrentHost!;
+    private VM _vm => _stateKeeper.CurrentVm!;
+
+    public NetworkSetup(StateKeeper stateKeeper)
     {
-        _host = host;
-        _vm = vm;
+        _stateKeeper = stateKeeper;
     }
 
     public void Configure()
@@ -26,13 +28,22 @@ public class NetworkSetup
 
         return new List<(string, Action)>
         {
-            ("Ensure NAT", () =>
+            ("Ensure NAT.", () =>
             {
                 EnsureNat(network.NatName, network.SwitchName, network.SubnetPrefixLength);
+            }),
+            ("Set host static IP", () =>
+            {
                 if (_host.NatNetInterface.IsDynamic)
                     SetHostStaticIp(network.SubnetPrefixLength, network.DnsServer);
             }),
-            ("Set static IPs", () =>
+            ("Ensure VM connection", () =>
+            {
+                var currentSwitch = _host.NetExecutor.GetVmSwitchName();
+                if (currentSwitch != network.SwitchName)
+                    _host.NetExecutor.ConnectVmToNet(network.SwitchName);
+            }),
+            ("Set VM static IP ", () =>
             {
                 var gateway = _host.NatNetInterface.IP;
                 var vmIp = FindFreeIp(gateway);
@@ -41,7 +52,7 @@ public class NetworkSetup
                 {
                     IsDynamic = vmNetInterfaceInfo.IsDynamic,
                     Alias = vmNetInterfaceInfo.Alias,
-                    IP = vmNetInterfaceInfo.IP,
+                    IP = _host.NetExecutor.GetVmIp(),
                 };
                 if (string.IsNullOrEmpty(vmNetInterfaceInfo.Alias))
                     throw new InvalidOperationException($"Vm '{_vm.Name}' is not connected to nat '{network.NatName}'.");
@@ -144,7 +155,7 @@ public class NetworkSetup
 
     private void ApplyVmProxy(string proxyAddress)
     {
-        _vm.NetExecutor.SetProxy(proxyAddress);
+        _vm.NetExecutor.SetProxy(proxyAddress, AppConfig.Current.Credentials.User);
         _vm.ProxyAddress = proxyAddress;
     }
 

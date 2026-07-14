@@ -1,5 +1,6 @@
 using Orchestrator.Config;
 using Orchestrator.Core;
+using Orchestrator.Executors;
 using Orchestrator.Models;
 using Orchestrator.Models.NetWorkModels;
 
@@ -18,7 +19,8 @@ internal sealed class Orchestrator
     private readonly Logger _logger;
     private readonly Step? _firstStep;
     private ScriptModel _activeModel;
-    private Host _host = new();
+
+    private Host _host => _runManager.StateKeeper.CurrentHost!;
 
     public Orchestrator(AppConfig config, string scriptsRoot)
     {
@@ -55,7 +57,7 @@ internal sealed class Orchestrator
         }
 
         var initializer = new Initializer(_runManager);
-        _host = initializer.LoadHost();
+        initializer.LoadHost();
         RefreshHeader();
         return true;
     }
@@ -64,21 +66,47 @@ internal sealed class Orchestrator
     {
         while (true)
         {
+            _viewer.SetHeader(new[] { "Select VM" });
             var items = new List<string>();
             for (var i = 0; i < _host.VMs.Count; i++)
                 items.Add($"{i + 1}. {_host.VMs[i].Name}");
+            items.Add($"{_host.VMs.Count + 1}. Create new VM");
             items.Add("0. Back");
 
             var choice = _viewer.ShowMenu(items);
             if (choice == items.Count - 1)
                 return;
 
-            var vm = _host.VMs[choice];
+            VM vm;
+            if (choice == items.Count - 2)
+            {
+                var name = ReadVmName();
+                if (string.IsNullOrWhiteSpace(name))
+                    continue;
+                vm = new VM { Name = name };
+                vm.NetExecutor = new NetExecutor("VM") { RunManager = _runManager };
+            }
+            else
+            {
+                vm = _host.VMs[choice];
+            }
+
             var initializer = new Initializer(_runManager);
-            initializer.LoadVmInfo(_host, vm);
+            initializer.LoadVmInfo(vm);
             RefreshHeader();
             VmActionsLoop(vm);
         }
+    }
+
+    private string ReadVmName()
+    {
+        _viewer.SetHeader(new[] { "Create new VM" });
+        Console.Clear();
+        Console.CursorVisible = true;
+        Console.Write("  VM name (empty = cancel): ");
+        var name = Console.ReadLine()?.Trim() ?? "";
+        Console.CursorVisible = false;
+        return name;
     }
 
     private void VmActionsLoop(VM vm)
@@ -115,7 +143,7 @@ internal sealed class Orchestrator
 
     private void NetworkStepsLoop(VM vm)
     {
-        var networkSetup = new NetworkSetup(_host, vm);
+        var networkSetup = new NetworkSetup(_runManager.StateKeeper);
         var steps = networkSetup.GetSteps();
         var items = new List<string>();
         for (var i = 0; i < steps.Count; i++)
@@ -164,7 +192,7 @@ internal sealed class Orchestrator
         }
         _setupVmModel.Root.Recalculate();
 
-        var networkSetup = new NetworkSetup(_host, vm);
+        var networkSetup = new NetworkSetup(_runManager.StateKeeper);
         try
         {
             networkSetup.Configure();

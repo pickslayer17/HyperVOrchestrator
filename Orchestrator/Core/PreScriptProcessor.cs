@@ -20,7 +20,7 @@ internal sealed class PreScriptProcessor
         _interpolateDecorator = new InterpolateDecorator(configValues, stateKeeper);
         _paramsWrapDecorator = new ParamsWrapDecorator();
         _rootPriviledgeWrapDecorator = new RootPriviledgeWrapDecorator();
-        _targetWrapDecorator = new TargetWrapDecorator(config.Vm.Name, config.Credentials.User, config.Credentials.Password);
+        _targetWrapDecorator = new TargetWrapDecorator(stateKeeper, config.Credentials.User, config.Credentials.Password);
     }
 
     public string Process(string script, IReadOnlyDictionary<string, string>? args = null)

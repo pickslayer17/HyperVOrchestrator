@@ -27,7 +27,8 @@ internal sealed class RunScriptManager
         var rawScript = FileHelper.ReadText(scriptPath);
         var processedScript = _preProcessor.Process(rawScript, args);
         var lineHandler = _postProcessor.WrapLineHandler(onLine);
-        var result = _scriptRunner.Run(processedScript, lineHandler);
+        var rawResult = _scriptRunner.Run(processedScript, lineHandler);
+        var result = _postProcessor.Process(rawResult);
         return result;
     }
 

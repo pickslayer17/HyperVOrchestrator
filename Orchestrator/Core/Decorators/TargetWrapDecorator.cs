@@ -11,20 +11,26 @@ internal sealed class TargetWrapDecorator : IScriptDecorator
         @"$ErrorActionPreference = 'Stop'
         $__cred = New-Object System.Management.Automation.PSCredential('{1}', (ConvertTo-SecureString '{2}' -AsPlainText -Force))
         try {{
-        $__rc = Invoke-Command -VMName '{3}' -Credential $__cred -ErrorAction Stop -ScriptBlock {{
-        {0}
+        Invoke-Command -VMName '{3}' -Credential $__cred -ErrorAction Stop -ScriptBlock {{
+        $__file = Join-Path $env:TEMP (""orch_"" + [guid]::NewGuid().ToString('N') + "".ps1"")
+        Set-Content -Path $__file -Value @'
+{0}
+'@ -Encoding UTF8
+        & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $__file
+        $__guestExit = $LASTEXITCODE
+        Remove-Item $__file -Force -ErrorAction SilentlyContinue
+        Write-Output ""<<exit::$__guestExit>>""
         }}
-        $__rc
-        exit ($__rc | Select-Object -Last 1)
+        exit 0
         }} catch {{ Write-Error $_.Exception.Message; exit 1 }}";
 
-    private readonly string _vmName;
+    private readonly StateKeeper _stateKeeper;
     private readonly string _user;
     private readonly string _password;
 
-    public TargetWrapDecorator(string vmName, string user, string password)
+    public TargetWrapDecorator(StateKeeper stateKeeper, string user, string password)
     {
-        _vmName = vmName;
+        _stateKeeper = stateKeeper;
         _user = user;
         _password = password;
     }
@@ -36,7 +42,7 @@ internal sealed class TargetWrapDecorator : IScriptDecorator
 
         var user = Escape(_user);
         var password = Escape(_password);
-        var vmName = Escape(_vmName);
+        var vmName = Escape(_stateKeeper.CurrentVm?.Name ?? "");
         var result = string.Format(WrapTemplate, script, user, password, vmName);
         return result;
     }
