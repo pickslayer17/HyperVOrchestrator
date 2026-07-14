@@ -25,6 +25,14 @@ internal sealed class Initializer
         host.HyperVExecutor = new HyperVExecutor { RunManager = _runManager };
         host.PythonServer.Python = new PythonExecutor { RunManager = _runManager };
 
+        var globalInterface = host.NetExecutor.GetHostGlobalInterfaceInfo();
+        host.GlobalNetInterface = new NetInterface
+        {
+            IsDynamic = globalInterface.IsDynamic,
+            Alias = globalInterface.Alias,
+            IP = globalInterface.IP,
+        };
+
         if (host.NetExecutor.NatExists(config.Network.NatName))
         {
             host.NatNet = new Net { Alias = host.NetExecutor.GetHostNatSwitch() };

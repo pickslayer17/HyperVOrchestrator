@@ -44,6 +44,12 @@ public class NetExecutor
         return JsonSerializer.Deserialize<NetInterfaceFSModel>(output, JsonOptions) ?? new NetInterfaceFSModel();
     }
 
+    public NetInterfaceFSModel GetHostGlobalInterfaceInfo()
+    {
+        var output = Run("GetHostGlobalInterfaceInfo.ps1");
+        return JsonSerializer.Deserialize<NetInterfaceFSModel>(output, JsonOptions) ?? new NetInterfaceFSModel();
+    }
+
     public VmFSModel GetNetworkInfo()
     {
         var output = Run("GetNetworkInfo.ps1");

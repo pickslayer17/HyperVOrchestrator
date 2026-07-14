@@ -98,7 +98,6 @@ internal sealed class ConsoleModelViewer
     private void Draw()
     {
         RebuildFlatNodes();
-        EnsureHeight();
         HideCursor();
         Console.Clear();
         RenderHeader();
@@ -241,12 +240,11 @@ internal sealed class ConsoleModelViewer
             AppendNode(childSuite);
     }
 
-    private void EnsureHeight()
+    public void FixWindowSize(int contentLines)
     {
         try
         {
-            var desired = DesiredHeight();
-            var wanted = Math.Min(desired, Console.LargestWindowHeight);
+            var wanted = Math.Min(contentLines + 8, Console.LargestWindowHeight);
             if (wanted < 1)
                 return;
 

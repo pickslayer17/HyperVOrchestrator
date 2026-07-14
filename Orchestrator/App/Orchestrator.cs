@@ -32,7 +32,16 @@ internal sealed class Orchestrator
         _firstStep = FindFirstStep(_setupVmModel.Root);
         _activeModel = _setupVmModel;
         _viewer = new ConsoleModelViewer(this);
+        _viewer.FixWindowSize(CountNodes(_setupVmModel.Root));
         _logger = new Logger();
+    }
+
+    private static int CountNodes(Suite suite)
+    {
+        var count = 1 + suite.Steps.Count;
+        foreach (var child in suite.ChildSuites)
+            count += CountNodes(child);
+        return count;
     }
 
     public void Start()
