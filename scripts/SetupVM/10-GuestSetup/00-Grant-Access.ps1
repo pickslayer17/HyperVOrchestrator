@@ -9,7 +9,9 @@ $vmUser = "@@credentials.user@@"
 
 # /C keeps going past locked files. Only DumpStack.log.tmp is expected to be locked
 # on a fresh VM and is ignored; ANY other failure is real and fails the step.
-$icaclsOutput = icacls "C:\" /grant "${vmUser}:(OI)(CI)F" /T /C /Q 2>&1
+$ErrorActionPreference = "Continue"
+$icaclsOutput = icacls "C:\" /grant "${vmUser}:(OI)(CI)F" /T /C /Q 2>&1 | ForEach-Object { "$_" }
+$ErrorActionPreference = "Stop"
 $realErrors = $icaclsOutput | Where-Object { $_ -match 'Failed' -and $_ -notmatch 'DumpStack\.log\.tmp' }
 if ($realErrors) {
     $realErrors | ForEach-Object { Write-Host $_ }
