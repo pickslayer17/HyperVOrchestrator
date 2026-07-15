@@ -1,7 +1,6 @@
-﻿param(
+param(
     [string]$Ip
 )
-$ScriptTarget = "@@state.executor.target@@"
 $ErrorActionPreference = "Stop"
 
 $pingAlive = Test-Connection -ComputerName $Ip -Count 1 -Quiet -ErrorAction SilentlyContinue

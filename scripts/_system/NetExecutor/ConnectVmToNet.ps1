@@ -1,7 +1,6 @@
-﻿param(
+param(
     [string]$SwitchName
 )
-$ScriptTarget = "@@state.executor.target@@"
 $ErrorActionPreference = "Stop"
 
 $vmName = "@@state.vm.name@@"

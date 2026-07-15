@@ -21,7 +21,7 @@ internal sealed class Initializer
 
         var host = new Host();
         state.SetCurrentHost(host);
-        host.NetExecutor = new NetExecutor("Host") { RunManager = _runManager };
+        host.NetExecutor = new NetExecutor(ExecutorTarget.Host) { RunManager = _runManager };
         host.HyperVExecutor = new HyperVExecutor { RunManager = _runManager };
         host.PythonServer.Python = new PythonExecutor { RunManager = _runManager };
 
@@ -56,7 +56,7 @@ internal sealed class Initializer
         foreach (var vmName in actualVmNames)
         {
             var vm = new VM { Name = vmName };
-            vm.NetExecutor = new NetExecutor("VM") { RunManager = _runManager };
+            vm.NetExecutor = new NetExecutor(ExecutorTarget.VM) { RunManager = _runManager };
             host.VMs.Add(vm);
         }
 

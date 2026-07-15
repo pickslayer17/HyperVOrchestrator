@@ -93,7 +93,7 @@ internal sealed class Orchestrator
                 if (string.IsNullOrWhiteSpace(name))
                     continue;
                 vm = new VM { Name = name };
-                vm.NetExecutor = new NetExecutor("VM") { RunManager = _runManager };
+                vm.NetExecutor = new NetExecutor(ExecutorTarget.VM) { RunManager = _runManager };
             }
             else
             {

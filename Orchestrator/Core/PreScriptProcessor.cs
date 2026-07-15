@@ -1,5 +1,6 @@
 using Orchestrator.Config;
 using Orchestrator.Core.Decorators;
+using Orchestrator.Executors;
 
 namespace Orchestrator.Core;
 
@@ -23,15 +24,16 @@ internal sealed class PreScriptProcessor
         _targetWrapDecorator = new TargetWrapDecorator(stateKeeper, config.Credentials.User, config.Credentials.Password);
     }
 
-    public string Process(string script, IReadOnlyDictionary<string, string>? args = null)
+    public string Process(string script, IReadOnlyDictionary<string, string>? args = null, ExecutorTarget? executorTarget = null)
     {
         var versioned = _versionDecorator.Format(script);
         var injected = _injectDecorator.Format(versioned);
         var interpolated = _interpolateDecorator.Format(injected);
         var parameterized = _paramsWrapDecorator.Format(interpolated, args);
         var systemVariables = SystemVariablesReader.Read(interpolated);
+        var isTargetVm = executorTarget.HasValue ? executorTarget.Value == ExecutorTarget.VM : systemVariables.IsTargetVm;
         var rootWrapped = systemVariables.IsRootPriviledges ? _rootPriviledgeWrapDecorator.Format(parameterized) : parameterized;
-        var targetWrapped = systemVariables.IsTargetVm ? _targetWrapDecorator.Format(parameterized) : rootWrapped;
+        var targetWrapped = isTargetVm ? _targetWrapDecorator.Format(parameterized) : rootWrapped;
         var result = targetWrapped;
         return result;
     }

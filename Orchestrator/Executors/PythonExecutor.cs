@@ -4,11 +4,13 @@ using Orchestrator.FSModels;
 
 namespace Orchestrator.Executors;
 
-public class PythonExecutor
+public class PythonExecutor : BaseExecutor
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
-    internal RunScriptManager? RunManager;
+    public PythonExecutor() : base(ExecutorTarget.Host)
+    {
+    }
 
     public bool GetProxyAlive()
     {
@@ -55,8 +57,6 @@ public class PythonExecutor
 
     private string Run(string scriptFile, IReadOnlyDictionary<string, string>? args = null)
     {
-        RunManager!.StateKeeper.ExecutorTarget = "Host";
-        var path = Path.Combine(Program.RepoRoot, "scripts", "_system", "PythonExecutor", scriptFile);
-        return RunManager.ExecuteFileScript(path, _ => { }, args).Output;
+        return RunScript("PythonExecutor", scriptFile, args);
     }
 }

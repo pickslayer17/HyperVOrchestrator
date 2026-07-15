@@ -1,5 +1,4 @@
 # vm: guest nat interface -> json { isDynamic, alias, ip }
-$ScriptTarget = "@@state.executor.target@@"
 $ErrorActionPreference = "Stop"
 
 $adapter = Get-NetAdapter -Physical -ErrorAction SilentlyContinue | Where-Object { $_.Status -eq 'Up' } | Select-Object -First 1

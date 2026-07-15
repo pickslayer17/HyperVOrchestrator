@@ -1,6 +1,5 @@
 # host: name of the NAT-backed internal switch, or "" if none
 # derived from the NAT subnet -> vEthernet adapter (no Hyper-V cmdlets, no elevation)
-$ScriptTarget = "@@state.executor.target@@"
 $ErrorActionPreference = "Stop"
 
 $switchName = ""

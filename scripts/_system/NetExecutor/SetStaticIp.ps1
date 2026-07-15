@@ -1,11 +1,10 @@
-﻿param(
+param(
     [string]$Alias,
     [string]$Ip,
     [string]$Gateway,
     [int]$PrefixLength,
     [string]$Dns
 )
-$ScriptTarget = "@@state.executor.target@@"
 $ErrorActionPreference = "Stop"
 
 Remove-NetIPAddress -InterfaceAlias $Alias -AddressFamily IPv4 -Confirm:$false -ErrorAction SilentlyContinue

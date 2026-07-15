@@ -5,16 +5,12 @@ using Orchestrator.Models.NetWorkModels;
 
 namespace Orchestrator.Executors;
 
-public class NetExecutor
+public class NetExecutor : BaseExecutor
 {
-    private readonly string Target ;
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
-    internal RunScriptManager? RunManager;
-
-    public NetExecutor(string target)
+    public NetExecutor(ExecutorTarget target) : base(target)
     {
-        Target = target;
     }
 
     public List<string> GetNatNames()
@@ -158,8 +154,6 @@ public class NetExecutor
 
     private string Run(string scriptFile, IReadOnlyDictionary<string, string>? args = null)
     {
-        RunManager.StateKeeper.ExecutorTarget = Target;
-        var path = Path.Combine(Program.RepoRoot, "scripts", "_system", "NetExecutor", scriptFile);
-        return RunManager!.ExecuteFileScript(path, _ => { }, args).Output;
+        return RunScript("NetExecutor", scriptFile, args);
     }
 }

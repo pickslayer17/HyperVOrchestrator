@@ -1,8 +1,7 @@
-﻿param(
+param(
     [string]$ProxyAddress,
     [string]$VmUser
 )
-$ScriptTarget = "@@state.executor.target@@"
 $ErrorActionPreference = "Stop"
 
 netsh winhttp set proxy "$ProxyAddress"

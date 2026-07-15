@@ -1,4 +1,3 @@
-$ScriptTarget = "@@state.executor.target@@"
 $ErrorActionPreference = "Stop"
 
 $isDynamic = $false

@@ -5,7 +5,6 @@ namespace Orchestrator.Core;
 
 internal sealed class StateKeeper
 {
-    public string ExecutorTarget {get; set;}
     public Host? CurrentHost { get; private set; }
     public VM? CurrentVm { get; private set; }
 
@@ -27,11 +26,6 @@ internal sealed class StateKeeper
             return TryReadPath(CurrentHost, key["state.host.".Length..], out value);
         if (key.StartsWith("state.vm.", StringComparison.OrdinalIgnoreCase))
             return TryReadPath(CurrentVm, key["state.vm.".Length..], out value);
-        if (key.Equals("state.executor.target", StringComparison.OrdinalIgnoreCase))
-        {
-            value = ExecutorTarget ?? "";
-            return true;
-        }
 
         return false;
     }

@@ -1,6 +1,5 @@
 # host: nat vEthernet interface -> json { isDynamic, alias, ip }
 # derived from the NAT subnet (no Hyper-V cmdlets, no elevation, no state dependency)
-$ScriptTarget = "@@state.executor.target@@"
 $ErrorActionPreference = "Stop"
 
 $isDynamic = $false

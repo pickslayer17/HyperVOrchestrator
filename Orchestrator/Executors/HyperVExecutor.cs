@@ -3,11 +3,13 @@ using Orchestrator.Core;
 
 namespace Orchestrator.Executors;
 
-public class HyperVExecutor
+public class HyperVExecutor : BaseExecutor
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
-    internal RunScriptManager? RunManager;
+    public HyperVExecutor() : base(ExecutorTarget.Host)
+    {
+    }
 
     public bool IsHyperVExists()
     {
@@ -23,8 +25,6 @@ public class HyperVExecutor
 
     private string Run(string scriptFile)
     {
-        RunManager!.StateKeeper.ExecutorTarget = "Host";
-        var path = Path.Combine(Program.RepoRoot, "scripts", "_system", "HyperVExecutor", scriptFile);
-        return RunManager.ExecuteFileScript(path, _ => { }).Output;
+        return RunScript("HyperVExecutor", scriptFile);
     }
 }

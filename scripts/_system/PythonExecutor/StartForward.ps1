@@ -1,10 +1,9 @@
-﻿param(
+param(
     [string]$BindIp,
     [int]$ListenPort,
     [string]$TargetIp,
     [int]$TargetPort
 )
-$ScriptTarget = "@@state.executor.target@@"
 $ErrorActionPreference = "Stop"
 
 $serverScript = "@@paths.pythonServer@@"

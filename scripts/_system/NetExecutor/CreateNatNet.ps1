@@ -1,10 +1,9 @@
-﻿param(
+param(
     [string]$NatName,
     [string]$SwitchName,
     [string]$HostIp,
     [int]$PrefixLength
 )
-$ScriptTarget = "@@state.executor.target@@"
 $ErrorActionPreference = "Stop"
 
 $octets = $HostIp.Split('.')

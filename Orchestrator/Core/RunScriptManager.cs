@@ -1,4 +1,5 @@
 using Orchestrator.Config;
+using Orchestrator.Executors;
 using Orchestrator.Helpers;
 using Orchestrator.Models;
 
@@ -11,6 +12,21 @@ internal sealed class RunScriptManager
     private readonly ScriptRunner _scriptRunner;
 
     public StateKeeper StateKeeper { get; }
+
+    private ExecutorTarget? _target;
+    public ExecutorTarget? Target
+    {
+        get
+        {
+            var taken = _target;
+            _target = null;
+            return taken;
+        }
+        set
+        {
+            _target = value;
+        }
+    }
 
     public RunScriptManager(AppConfig config, string scriptsRoot)
     {
@@ -25,7 +41,7 @@ internal sealed class RunScriptManager
     public Result ExecuteFileScript(string scriptPath, Action<string> onLine, IReadOnlyDictionary<string, string>? args = null)
     {
         var rawScript = FileHelper.ReadText(scriptPath);
-        var processedScript = _preProcessor.Process(rawScript, args);
+        var processedScript = _preProcessor.Process(rawScript, args, Target);
         var lineHandler = _postProcessor.WrapLineHandler(onLine);
         var rawResult = _scriptRunner.Run(processedScript, lineHandler);
         var result = _postProcessor.Process(rawResult);

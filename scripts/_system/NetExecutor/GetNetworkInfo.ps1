@@ -1,5 +1,4 @@
 # vm: guest network snapshot -> json { running, natIp, interfaceAlias, proxyAddress }
-$ScriptTarget = "@@state.executor.target@@"
 $ErrorActionPreference = "Stop"
 
 $adapter = Get-NetAdapter -Physical -ErrorAction SilentlyContinue | Where-Object { $_.Status -eq 'Up' } | Select-Object -First 1

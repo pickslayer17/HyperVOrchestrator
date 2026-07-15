@@ -1,7 +1,6 @@
-﻿param(
+param(
     [string]$NatName
 )
-$ScriptTarget = "@@state.executor.target@@"
 $ErrorActionPreference = "Stop"
 
 $hostNetInterface = [pscustomobject]@{ isDynamic = $false; alias = ""; ip = "" }
