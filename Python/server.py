@@ -8,7 +8,7 @@ from multiprocessing.connection import Listener as IpcListener, Client
 from manager import Manager
 from netlog import log
 
-PIPE_ADDR = r"\\.\pipe\hyperv-netagent"
+IPC_ADDR = ("127.0.0.1", 47653)
 
 DETACHED_PROCESS = 0x00000008
 CREATE_NEW_PROCESS_GROUP = 0x00000200
@@ -108,7 +108,7 @@ def spawn_detached():
 
 
 def send(cmd, opts):
-    conn = Client(PIPE_ADDR, family="AF_PIPE")
+    conn = Client(IPC_ADDR, family="AF_INET")
     conn.send((cmd, opts))
     status, payload = conn.recv()
     conn.close()
@@ -191,7 +191,7 @@ def main():
         print(HELP)
         return
     if cmd == "_serve":
-        serve(IpcListener(PIPE_ADDR, family="AF_PIPE"))
+        serve(IpcListener(IPC_ADDR, family="AF_INET"))
         return
     if cmd == "is_alive":
         print("true" if is_live() else "false")
