@@ -38,7 +38,7 @@ internal sealed class Initializer
             host.NatNet = new Net { Alias = host.NetExecutor.GetHostNatSwitch() };
             host.SwitchName = host.NetExecutor.GetSwitchName();
 
-            var hostInterface = host.NetExecutor.GetHostNatInterfaceInfo();
+            var hostInterface = host.NetExecutor.GetHostNatInterfaceInfo(config.Network.SwitchName);
             host.NatNetInterface = new NetInterface
             {
                 IsDynamic = hostInterface.IsDynamic,
@@ -47,7 +47,7 @@ internal sealed class Initializer
             };
         }
 
-        host.PythonServer.Alive = host.PythonServer.Python.GetProxyAlive();
+        host.PythonServer.Alive = host.PythonServer.Python.IsAlive();
 
         if (!host.HyperVExecutor.IsHyperVExists())
             return host;

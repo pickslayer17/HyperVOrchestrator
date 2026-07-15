@@ -34,9 +34,9 @@ public class NetExecutor : BaseExecutor
         return Run("GetSwitchName.ps1").Trim();
     }
 
-    public NetInterfaceFSModel GetHostNatInterfaceInfo()
+    public NetInterfaceFSModel GetHostNatInterfaceInfo(string switchName)
     {
-        var output = Run("GetHostNatInterfaceInfo.ps1");
+        var output = Run("GetHostNatInterfaceInfo.ps1", new Dictionary<string, string> { ["SwitchName"] = switchName });
         return JsonSerializer.Deserialize<NetInterfaceFSModel>(output, JsonOptions) ?? new NetInterfaceFSModel();
     }
 
@@ -95,7 +95,7 @@ public class NetExecutor : BaseExecutor
         return output.Trim().Equals("true", StringComparison.OrdinalIgnoreCase);
     }
 
-    public NetInterface SetStaticIp(string alias, string ip, string gateway, int prefixLength, string dns)
+    public void SetStaticIp(string alias, string ip, string gateway, int prefixLength, string dns)
     {
         Run("SetStaticIp.ps1", new Dictionary<string, string>
         {
@@ -105,7 +105,16 @@ public class NetExecutor : BaseExecutor
             ["PrefixLength"] = prefixLength.ToString(),
             ["Dns"] = dns,
         });
-        return new NetInterface { IsDynamic = false, Alias = alias, IP = ip };
+    }
+
+    public void SetHostStaticIp(string alias, string ip, int prefixLength)
+    {
+        Run("SetHostStaticIp.ps1", new Dictionary<string, string>
+        {
+            ["Alias"] = alias,
+            ["Ip"] = ip,
+            ["PrefixLength"] = prefixLength.ToString(),
+        });
     }
 
     public void SetProxy(string proxyAddress, string vmUser)

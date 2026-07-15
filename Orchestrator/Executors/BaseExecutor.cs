@@ -23,6 +23,12 @@ public abstract class BaseExecutor
     {
         RunManager!.Target = Target;
         var path = Path.Combine(Program.RepoRoot, "scripts", "_system", executorName, scriptFile);
-        return RunManager.ExecuteFileScript(path, _ => { }, args).Output;
+        var result = RunManager.ExecuteFileScript(path, _ => { }, args);
+        if (result.ExitCode != 0)
+        {
+            var details = string.IsNullOrWhiteSpace(result.Output) ? "" : $": {result.Output.Trim()}";
+            throw new InvalidOperationException($"{executorName}/{scriptFile} failed with exit code {result.ExitCode}{details}");
+        }
+        return result.Output;
     }
 }

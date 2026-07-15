@@ -12,12 +12,6 @@ public class PythonExecutor : BaseExecutor
     {
     }
 
-    public bool GetProxyAlive()
-    {
-        var output = Run("GetProxyAlive.ps1");
-        return output.Trim().Equals("true", StringComparison.OrdinalIgnoreCase);
-    }
-
     public ConnectionsFSModel GetAllConnections()
     {
         var output = Run("GetAllConnections.ps1");

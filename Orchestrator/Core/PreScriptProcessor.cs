@@ -26,15 +26,18 @@ internal sealed class PreScriptProcessor
 
     public string Process(string script, IReadOnlyDictionary<string, string>? args = null, ExecutorTarget? executorTarget = null)
     {
-        var versioned = _versionDecorator.Format(script);
-        var injected = _injectDecorator.Format(versioned);
-        var interpolated = _interpolateDecorator.Format(injected);
-        var parameterized = _paramsWrapDecorator.Format(interpolated, args);
-        var systemVariables = SystemVariablesReader.Read(interpolated);
+        var decoratableScript = script;
+        decoratableScript = _versionDecorator.Format(decoratableScript);
+        decoratableScript = _injectDecorator.Format(decoratableScript);
+        decoratableScript = _interpolateDecorator.Format(decoratableScript);
+        decoratableScript = _paramsWrapDecorator.Format(decoratableScript, args);
+        var systemVariables = SystemVariablesReader.Read(decoratableScript);
+
         var isTargetVm = executorTarget.HasValue ? executorTarget.Value == ExecutorTarget.VM : systemVariables.IsTargetVm;
-        var rootWrapped = systemVariables.IsRootPriviledges ? _rootPriviledgeWrapDecorator.Format(parameterized) : parameterized;
-        var targetWrapped = isTargetVm ? _targetWrapDecorator.Format(parameterized) : rootWrapped;
-        var result = targetWrapped;
+        decoratableScript = systemVariables.IsRootPriviledges ? _rootPriviledgeWrapDecorator.Format(decoratableScript) : decoratableScript;
+        decoratableScript = isTargetVm ? _targetWrapDecorator.Format(decoratableScript) : decoratableScript;
+
+        var result = decoratableScript;
         return result;
     }
 }

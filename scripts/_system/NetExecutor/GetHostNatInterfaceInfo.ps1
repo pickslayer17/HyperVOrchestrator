@@ -1,20 +1,19 @@
-# host: nat vEthernet interface -> json { isDynamic, alias, ip }
-# derived from the NAT subnet (no Hyper-V cmdlets, no elevation, no state dependency)
+param(
+    [string]$SwitchName
+)
 $ErrorActionPreference = "Stop"
 
 $isDynamic = $false
 $alias = ""
 $ip = ""
 
-$nat = Get-NetNat -ErrorAction SilentlyContinue | Select-Object -First 1
-if ($nat) {
-    $base = $nat.InternalIPInterfaceAddressPrefix.Split('/')[0]
-    $subnet = $base.Substring(0, $base.LastIndexOf('.') + 1)
-    $ipObj = Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue |
-             Where-Object { $_.IPAddress -like "$subnet*" -and $_.InterfaceAlias -like 'vEthernet (*)' } |
-             Select-Object -First 1
+$expectedAlias = "vEthernet ($SwitchName)"
+$adapter = Get-NetAdapter -Name $expectedAlias -ErrorAction SilentlyContinue
+if ($adapter) {
+    $alias = $adapter.Name
+    $ipObj = Get-NetIPAddress -InterfaceAlias $alias -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+             Where-Object { $_.PrefixOrigin -ne 'WellKnown' } | Select-Object -First 1
     if ($ipObj) {
-        $alias = $ipObj.InterfaceAlias
         $ip = $ipObj.IPAddress
         $isDynamic = $ipObj.PrefixOrigin -eq 'Dhcp'
     }
