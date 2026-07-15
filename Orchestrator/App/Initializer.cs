@@ -69,8 +69,15 @@ internal sealed class Initializer
         var host = state.CurrentHost!;
         state.SetCurrentVm(vm);
 
+        vm.Running = host.HyperVExecutor.IsVMRunning(vm.Name);
+        if (!vm.Running)
+        {
+            vm.ProxyAddress = "";
+            vm.NatNetInterface = new NetInterface();
+            return;
+        }
+
         var vmInfo = vm.NetExecutor.GetNetworkInfo();
-        vm.Running = vmInfo.Running;
         vm.ProxyAddress = vmInfo.ProxyAddress;
 
         var netInterfaceInfo = vm.NetExecutor.GetNetInterfaceInfo();

@@ -23,8 +23,14 @@ public class HyperVExecutor : BaseExecutor
         return JsonSerializer.Deserialize<List<string>>(output, JsonOptions) ?? new List<string>();
     }
 
-    private string Run(string scriptFile)
+    public bool IsVMRunning(string vmName)
     {
-        return RunScript("HyperVExecutor", scriptFile);
+        var output = Run("IsVMRunning.ps1", new Dictionary<string, string> { ["VmName"] = vmName });
+        return output.Trim().Equals("true", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private string Run(string scriptFile, IReadOnlyDictionary<string, string>? args = null)
+    {
+        return RunScript("HyperVExecutor", scriptFile, args);
     }
 }

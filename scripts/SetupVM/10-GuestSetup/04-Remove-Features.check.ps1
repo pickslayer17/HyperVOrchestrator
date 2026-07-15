@@ -17,7 +17,7 @@ foreach ($feature in $FeaturesToRemove) {
 if ($presentFeatures.Count -gt 0) {
     Write-Host "$absentCount absent, $($presentFeatures.Count) present (need removal):"
     $presentFeatures | ForEach-Object { Write-Host "  $_" }
-    return 0
+    exit 0
 }
 Write-Host "already done: optional features removed."
-return 2
+exit 2

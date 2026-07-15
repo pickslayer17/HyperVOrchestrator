@@ -1,4 +1,4 @@
-# return 2 = services disabled + reg start applied ; 0 = work to do.
+# exit 2 = services disabled + reg start applied ; 0 = work to do.
 
 $ScriptTarget = "VM"
 $ErrorActionPreference = "Stop"
@@ -12,7 +12,7 @@ foreach ($service in $ServicesToDisable) {
     if ($service -eq 'dmwappushservice') { continue }  # optional on some builds
     if (-not (Get-Service -Name $service -ErrorAction Stop)) {
         Write-Host "smoke fail: service '$service' not found on this OS."
-        return 1
+        exit 1
     }
 }
 
@@ -30,7 +30,7 @@ foreach ($registryEntry in $ServiceRegStart) {
 if ($todo.Count -gt 0) {
     Write-Host "$doneCount done, $($todo.Count) need work:"
     $todo | ForEach-Object { Write-Host "  $_" }
-    return 0
+    exit 0
 }
 Write-Host "already done: services disabled, reg start applied."
-return 2
+exit 2

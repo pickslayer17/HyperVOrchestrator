@@ -9,7 +9,7 @@ $ErrorActionPreference = "Stop"
 # smoke: the tooling we rely on must be present
 if (-not (Get-Command Get-AppxProvisionedPackage -ErrorAction SilentlyContinue)) {
     Write-Host "smoke fail: Appx provisioning cmdlets unavailable."
-    return 1
+    exit 1
 }
 
 # Only list what is actually present (needs removal); count the rest.
@@ -27,7 +27,7 @@ if (Test-Path "$env:LOCALAPPDATA\Microsoft\OneDrive") { $presentApps.Add("OneDri
 if ($presentApps.Count -gt 0) {
     Write-Host "$absentCount absent, $($presentApps.Count) present (need removal):"
     $presentApps | ForEach-Object { Write-Host "  $_" }
-    return 0
+    exit 0
 }
 Write-Host "already done: apps + OneDrive removed."
-return 2
+exit 2

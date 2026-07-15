@@ -9,7 +9,7 @@ $ErrorActionPreference = "Stop"
 # smoke: HKCU must be loaded for the user we run as (per-user keys live there)
 if (-not (Test-Path "HKCU:\Software")) {
     Write-Host "smoke fail: HKCU hive not available."
-    return 1
+    exit 1
 }
 
 # Only list what is actually missing (needs setting); count the rest.
@@ -26,7 +26,7 @@ foreach ($tweak in $RegistryTweaks) {
 if ($missingTweaks.Count -gt 0) {
     Write-Host "$appliedCount applied, $($missingTweaks.Count) missing (need setting):"
     $missingTweaks | ForEach-Object { Write-Host "  $_" }
-    return 0
+    exit 0
 }
 Write-Host "already done: all $($RegistryTweaks.Count) registry tweaks applied."
-return 2
+exit 2

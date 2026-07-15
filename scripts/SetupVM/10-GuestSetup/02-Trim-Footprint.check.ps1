@@ -16,7 +16,7 @@ if (Test-ReservedStorageDisabled) { $doneCount++ } else { $todo.Add("reserved st
 if ($todo.Count -gt 0) {
     Write-Host "$doneCount done, $($todo.Count) need work:"
     $todo | ForEach-Object { Write-Host "  $_" }
-    return 0
+    exit 0
 }
 Write-Host "already done: sleep off, footprint trimmed."
-return 2
+exit 2
