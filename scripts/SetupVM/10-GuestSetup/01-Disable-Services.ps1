@@ -31,7 +31,8 @@ foreach ($registryEntry in $ServiceRegStart) {
 # taskkill /f triggers a 0xEF CRITICAL_PROCESS_DIED bugcheck. A live wlms may fire one
 # last shutdown before the reboot, which is far better than a BSOD loop.
 Get-ScheduledTask -TaskPath "\Microsoft\Windows\WindowsUpdate\" | Disable-ScheduledTask -ErrorAction SilentlyContinue
-schtasks /Change /TN "\Microsoft\Windows\Defrag\ScheduledDefrag" /Disable
+Get-ScheduledTask -TaskPath "\Microsoft\Windows\Defrag\" -TaskName "ScheduledDefrag" -ErrorAction SilentlyContinue |
+    Disable-ScheduledTask -ErrorAction SilentlyContinue
 
 # --- No hibernation ---
 powercfg /h off

@@ -10,19 +10,19 @@ $vmUser = "@@credentials.user@@"
 $credential = New-Object System.Management.Automation.PSCredential(
     $vmUser,
     (ConvertTo-SecureString "@@credentials.password@@" -AsPlainText -Force))
+$vmUserPattern = [regex]::Escape($vmUser)
 
 function Now { (Get-Date -Format 'HH:mm:ss') }
 
-# --- 1) wait for VM power on (1 min hard cap) ---
 $poweredOn = $false
-$deadline = (Get-Date).AddMinutes(1)
+$deadline = (Get-Date).AddMinutes(10)
 while ((Get-Date) -lt $deadline) {
     $state = (Get-VM -VMName $vmName).State
     Write-Host "[$(Now)] VM state: $state"
     if ($state -eq 'Running') { Write-Host "[$(Now)] VM is on"; $poweredOn = $true; break }
     Start-Sleep -Seconds 2
 }
-if (-not $poweredOn) { Write-Host "[$(Now)] TIMEOUT: VM did not power on within 1 min"; exit 1 }
+if (-not $poweredOn) { Write-Host "[$(Now)] TIMEOUT: VM did not power on within 10 min"; exit 1 }
 
 # --- 2) wait for the user session (10 min cap, query session inside guest, 8s per attempt) ---
 $deadline = (Get-Date).AddMinutes(10)
@@ -31,7 +31,7 @@ while ((Get-Date) -lt $deadline) {
     $job = Start-Job { param($vmName, $credential) Invoke-Command -VMName $vmName -Credential $credential -ScriptBlock { query session } } -ArgumentList $vmName, $credential
     if (Wait-Job $job -Timeout 8) {
         $sessionOutput = Receive-Job $job -ErrorAction SilentlyContinue
-        if ($sessionOutput -match $vmUser) {
+        if ($sessionOutput -match $vmUserPattern) {
             Write-Host "[$(Now)] $vmUser session found"
             Remove-Job $job -Force
             $found = $true

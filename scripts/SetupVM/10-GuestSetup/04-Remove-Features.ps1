@@ -10,10 +10,14 @@ $ErrorActionPreference = "Stop"
 foreach ($feature in $FeaturesToRemove) {
     if (Test-FeatureRemoved -Name $feature.Name) { continue }
     Write-Host "'$($feature.Name)': present (removing)"
-    if ($feature.Hard) {
-        dism /online /Disable-Feature /FeatureName:$($feature.Name) /Remove
-    } else {
-        dism /online /Disable-Feature /FeatureName:$($feature.Name) /Remove 2>$null
+    $dismOutput = dism /online /Disable-Feature /FeatureName:$($feature.Name) /Remove 2>&1 | ForEach-Object { "$_" }
+    $dismExitCode = $LASTEXITCODE
+    if ($dismExitCode -notin @(0, 3010)) {
+        if ($feature.Hard) {
+            $dismOutput | ForEach-Object { Write-Host $_ }
+            throw "DISM failed to remove '$($feature.Name)' with exit code $dismExitCode."
+        }
+        Write-Host "'$($feature.Name)': removal unsupported, skipped (exit $dismExitCode)"
     }
 }
 
