@@ -10,4 +10,10 @@ $ErrorActionPreference = "Stop"
 
 Set-MissingRegTweaks -Tweaks $RegistryTweaks
 
+$edgeProcesses = Get-Process -Name 'msedge' -ErrorAction SilentlyContinue
+if ($edgeProcesses) {
+	$edgeProcesses | Stop-Process -Force
+	Write-Host "Edge restarted to apply policies on next launch."
+}
+
 Write-Host "Registry tweaks applied."
