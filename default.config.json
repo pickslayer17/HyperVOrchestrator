@@ -46,6 +46,13 @@
     "channel": "Current",
     "edition": "64",
     "apps": ["Word"]
+  },
+  "agent": {
+    "orgUrl": "",
+    "pool": "",
+    "token": "",
+    "version": "5.275.0",
+    "dir": "C:\\agent"
   }
 }
 

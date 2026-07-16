@@ -11,6 +11,7 @@ public class AppConfig
     public DotnetConfig Dotnet { get; init; } = new();
     public FlauiConfig Flaui { get; init; } = new();
     public OfficeConfig Office { get; init; } = new();
+    public AgentConfig Agent { get; init; } = new();
 
     public static AppConfig Current { get; private set; } = new();
 
@@ -109,4 +110,13 @@ public sealed class OfficeConfig
     public string Channel { get; init; } = "";
     public string Edition { get; init; } = "";
     public string[] Apps { get; init; } = [];
+}
+
+public sealed class AgentConfig
+{
+    public string OrgUrl { get; init; } = "";
+    public string Pool { get; init; } = "";
+    public string Token { get; init; } = "";
+    public string Version { get; init; } = "";
+    public string Dir { get; init; } = "";
 }
