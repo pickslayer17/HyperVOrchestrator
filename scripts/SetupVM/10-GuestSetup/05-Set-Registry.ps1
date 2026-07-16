@@ -1,5 +1,5 @@
 # Apply every registry tweak from the shared list: telemetry/privacy off, focus
-# thieves silenced, Edge tamed, update/sleep/OneDrive backing values, Explorer QoL.
+# thieves silenced, Edge tamed, update/sleep backing values, Explorer QoL.
 # Runs as TestUser (admin), NOT SYSTEM: HKCU tweaks must land in TestUser's hive, and
 # under a SYSTEM task they would silently go to the SYSTEM profile instead.
 $ScriptTarget = "VM"

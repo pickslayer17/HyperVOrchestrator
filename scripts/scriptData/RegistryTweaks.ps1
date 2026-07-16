@@ -56,7 +56,6 @@ $RegistryTweaks = @(
     # --- Update / sleep backing values (set elsewhere, verified here too) ---
     @{ Path = 'HKLM\SOFTWARE\Microsoft\Windows\WindowsUpdate\AU'; Name = 'NoAutoUpdate'; Value = 1; Type = 'DWord' }
     @{ Path = 'HKLM\SYSTEM\CurrentControlSet\Control\Power'; Name = 'HiberbootEnabled'; Value = 0; Type = 'DWord' }
-    @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive'; Name = 'DisableFileSyncNGSC'; Value = 1; Type = 'DWord' }
 
     # --- Explorer QoL ---
     @{ Path = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'; Name = 'HideFileExt'; Value = 0; Type = 'DWord' }

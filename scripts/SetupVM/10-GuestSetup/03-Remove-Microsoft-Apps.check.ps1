@@ -1,5 +1,3 @@
-# exit 2 = all targeted apps + OneDrive gone ; exit 0 = work to do.
-
 $ScriptTarget = "VM"
 $ErrorActionPreference = "Stop"
 
@@ -20,14 +18,10 @@ foreach ($app in $AppsToRemove) {
     if (Test-AppxAbsent -Match $app) { $absentCount++ } else { $presentApps.Add($app) }
 }
 
-# OneDrive done = user install folder gone. The OneDriveSetup.exe binary stays
-# (TrustedInstaller-owned, undeletable, harmless) so we do NOT gate on it.
-if (Test-Path "$env:LOCALAPPDATA\Microsoft\OneDrive") { $presentApps.Add("OneDrive") } else { $absentCount++ }
-
 if ($presentApps.Count -gt 0) {
     Write-Host "$absentCount absent, $($presentApps.Count) present (need removal):"
     $presentApps | ForEach-Object { Write-Host "  $_" }
     exit 0
 }
-Write-Host "already done: apps + OneDrive removed."
+Write-Host "already done: apps removed."
 exit 2
