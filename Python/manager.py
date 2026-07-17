@@ -3,16 +3,29 @@ import threading
 from listener import Listener
 from proxy_socks import SocksHandler
 from forwarder import ForwardHandler
+from dns_forwarder import DnsForwarder
 from netlog import log
 
 PROXY_KEY = "socks"
+DNS_KEY = "dns"
 
 
 class Manager:
     def __init__(self):
         self._proxies = {}
         self._forwards = {}
+        self._dns = {}
         self._lock = threading.RLock()
+
+    def start_dns_fwd(self, ip, port, upstream=None):
+        with self._lock:
+            existing = self._dns.get(DNS_KEY)
+            if existing:
+                existing.stop()
+            forwarder = DnsForwarder(ip, port, upstream)
+            forwarder.start()
+            self._dns[DNS_KEY] = forwarder
+        log("MGR", f"dns forwarder listening on {ip}:{port} -> {forwarder.upstream}:53")
 
     def start_proxy(self, ip, port):
         port = int(port)
@@ -46,7 +59,8 @@ class Manager:
                 {"listen": f"{listener.bind_ip}:{listener.port}", "target": f"{target_ip}:{target_port}"}
                 for listener, target_ip, target_port in self._forwards.values()
             ]
-            return {"proxy": proxies, "fwd": forwards, "active": self._count_active()}
+            dns = [f"{fwd.bind_ip}:{fwd.port} -> {fwd.upstream}:53" for fwd in self._dns.values()]
+            return {"proxy": proxies, "fwd": forwards, "dns": dns, "active": self._count_active()}
 
     def _count_active(self):
         total = 0

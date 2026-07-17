@@ -18,6 +18,7 @@ HELP = """hyperv-netagent - commands:
   stop
   start_proxy      -ip <ip> -port <port>
   start_fwd        -ip <bindIp> -port <listenPort> -targetip <ip> -targetport <port>
+  start_dns        -ip <bindIp> -port <listenPort> [-upstream <dnsIp>]
   get_connections
   is_alive
   help"""
@@ -48,6 +49,9 @@ def apply(manager, cmd, opts):
         return "ok"
     if cmd == "start_fwd":
         manager.start_fwd(opts["ip"], opts["port"], opts["targetip"], opts["targetport"])
+        return "ok"
+    if cmd == "start_dns":
+        manager.start_dns_fwd(opts["ip"], opts["port"], opts.get("upstream") if opts.get("upstream") is not True else None)
         return "ok"
     if cmd == "get_connections":
         return manager.get_connections()
@@ -171,6 +175,8 @@ def cmd_get_connections():
         print(f"proxy: {proxy}")
     for fwd in payload["fwd"]:
         print(f"fwd: {fwd['listen']} -> {fwd['target']}")
+    for dns in payload.get("dns", []):
+        print(f"dns: {dns}")
     print(f"active: {payload['active']}")
 
 
@@ -205,7 +211,7 @@ def main():
     if cmd == "get_connections":
         cmd_get_connections()
         return
-    if cmd in ("start_proxy", "start_fwd"):
+    if cmd in ("start_proxy", "start_fwd", "start_dns"):
         cmd_passthrough(cmd, opts)
         return
     print(f"unknown command: {cmd}")
