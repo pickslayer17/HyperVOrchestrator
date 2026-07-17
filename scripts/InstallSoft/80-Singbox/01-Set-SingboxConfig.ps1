@@ -1,8 +1,8 @@
 $ScriptTarget = "VM"
 $ErrorActionPreference = "Stop"
 
-$dnsServer = "@@network.dnsServer@@"
 $socksPort = "@@network.singboxSocksPort@@"
+$dnsPort   = "@@network.singboxDnsPort@@"
 $hostIp    = "@@network.defaultNatHostIp@@"
 $guestDir  = "@@paths.guestSingboxDir@@"
 $logPath   = (Join-Path $guestDir "sing-box.log") -replace '\\','/'
@@ -17,7 +17,7 @@ $config = @"
   },
   "dns": {
     "servers": [
-      { "type": "udp", "tag": "remote", "server": "$dnsServer", "detour": "socks-out" }
+      { "type": "udp", "tag": "remote", "server": "$hostIp", "server_port": $dnsPort }
     ],
     "strategy": "ipv4_only"
   },

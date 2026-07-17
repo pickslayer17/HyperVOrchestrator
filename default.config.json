@@ -20,7 +20,8 @@
     "dnsServer": "8.8.8.8",
     "subnetPrefixLength": 24,
     "forwardBind": "0.0.0.0",
-    "singboxSocksPort": 1080
+    "singboxSocksPort": 1080,
+    "singboxDnsPort": 1081
   },
   "paths": {
     "vmDir": "",
