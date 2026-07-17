@@ -1,8 +1,9 @@
 $ScriptTarget = "VM"
 $ErrorActionPreference = "Stop"
 
+$guestDir = "@@paths.guestOfficeDir@@"
 Add-Type -AssemblyName System.IO.Compression.FileSystem
-if (Test-Path 'C:\office_cache\Office') { Remove-Item 'C:\office_cache\Office' -Recurse -Force }
-[System.IO.Compression.ZipFile]::ExtractToDirectory('C:\office_cache\Office.zip', 'C:\office_cache')
-Remove-Item 'C:\office_cache\Office.zip' -Force
-Write-Host "extracted to C:\office_cache\Office; removed Office.zip"
+if (Test-Path (Join-Path $guestDir "Office")) { Remove-Item (Join-Path $guestDir "Office") -Recurse -Force }
+[System.IO.Compression.ZipFile]::ExtractToDirectory((Join-Path $guestDir "Office.zip"), $guestDir)
+Remove-Item (Join-Path $guestDir "Office.zip") -Force
+Write-Host "extracted to $guestDir\Office; removed Office.zip"

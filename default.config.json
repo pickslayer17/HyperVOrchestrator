@@ -19,7 +19,8 @@
     "defaultNatHostIp": "192.168.100.1",
     "dnsServer": "8.8.8.8",
     "subnetPrefixLength": 24,
-    "forwardBind": "0.0.0.0"
+    "forwardBind": "0.0.0.0",
+    "singboxSocksPort": 1080
   },
   "paths": {
     "vmDir": "",
@@ -27,6 +28,9 @@
     "unattendTemplate": "templates/autounattend.template.xml",
     "unattendXml": "",
     "officeArchive": "",
+    "singboxArtifacts": "Artifacts/sing_box",
+    "guestOfficeDir": "C:\\office_cache",
+    "guestSingboxDir": "C:\\sing-box",
     "stateFile": "artifacts/state.json",
     "dotnetInstallDir": "C:\\Program Files\\dotnet",
     "pythonServer": "Python/server.py"

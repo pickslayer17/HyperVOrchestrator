@@ -1,7 +1,7 @@
 $ScriptTarget = "VM"
 $ErrorActionPreference = "Stop"
 
-if (Test-Path 'C:\office_cache\setup.exe') {
+if (Test-Path (Join-Path "@@paths.guestOfficeDir@@" "setup.exe")) {
     Write-Host "office files already copied to VM."
     exit 2
 }

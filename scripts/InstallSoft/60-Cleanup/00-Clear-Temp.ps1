@@ -25,7 +25,7 @@ if ($dismExitCode -notin @(0, 3010)) {
 	'C:\Windows\Temp\*'
 	"$env:LOCALAPPDATA\Temp\*"
 	'C:\Windows\Prefetch\*'
-	'C:\office_cache'
+	"@@paths.guestOfficeDir@@"
 ) | ForEach-Object { Remove-CleanupPath -Path $_ }
 
 Write-Host "Cleanup done."

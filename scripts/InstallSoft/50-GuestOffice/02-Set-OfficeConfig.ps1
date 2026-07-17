@@ -1,6 +1,7 @@
 $ScriptTarget = "VM"
 $ErrorActionPreference = "Stop"
 
+$guestDir = "@@paths.guestOfficeDir@@"
 $wanted = @("@@office.apps@@".Split(',') | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 $allApps = @('Access','Excel','Groove','Lync','OneDrive','OneNote','Outlook','PowerPoint','Publisher','Word','Teams')
 $excluded = $allApps | Where-Object { $wanted -notcontains $_ }
@@ -8,7 +9,7 @@ $excludeLines = ($excluded | ForEach-Object { "      <ExcludeApp ID=`"$_`" />" }
 
 $xml = @"
 <Configuration>
-  <Add OfficeClientEdition="@@office.edition@@" Channel="@@office.channel@@" SourcePath="C:\office_cache">
+  <Add OfficeClientEdition="@@office.edition@@" Channel="@@office.channel@@" SourcePath="$guestDir">
     <Product ID="O365ProPlusRetail">
       <Language ID="en-us" />
 $excludeLines
@@ -20,5 +21,5 @@ $excludeLines
 </Configuration>
 "@
 
-Set-Content -Path 'C:\office_cache\configuration.xml' -Value $xml -Encoding UTF8
+Set-Content -Path (Join-Path $guestDir "configuration.xml") -Value $xml -Encoding UTF8
 Write-Host "config written; installing: $($wanted -join ', ')"

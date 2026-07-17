@@ -1,7 +1,7 @@
 $ScriptTarget = "VM"
 $ErrorActionPreference = "Stop"
 
-if (Test-Path 'C:\office_cache\Office\Data') {
+if (Test-Path (Join-Path "@@paths.guestOfficeDir@@" "Office\Data")) {
     Write-Host "archive already extracted."
     exit 2
 }

@@ -56,6 +56,7 @@ public sealed class NetworkConfig
     public int SubnetPrefixLength { get; init; }
     public string DnsServer { get; init; } = "";
     public string ForwardBind { get; init; } = "";
+    public int SingboxSocksPort { get; init; }
 }
 
 public sealed class PathsConfig
@@ -65,6 +66,9 @@ public sealed class PathsConfig
     public string UnattendTemplate { get; set; } = "";
     public string UnattendXml { get; set; } = "";
     public string OfficeArchive { get; set; } = "";
+    public string SingboxArtifacts { get; set; } = "";
+    public string GuestOfficeDir { get; init; } = "";
+    public string GuestSingboxDir { get; init; } = "";
     public string StateFile { get; set; } = "";
     public string DotnetInstallDir { get; init; } = "";
     public string PythonServer { get; set; } = "";
@@ -75,6 +79,7 @@ public sealed class PathsConfig
         UnattendTemplate = Resolve(repoRoot, UnattendTemplate);
         UnattendXml = Resolve(repoRoot, UnattendXml);
         OfficeArchive = Resolve(repoRoot, OfficeArchive);
+        SingboxArtifacts = Resolve(repoRoot, SingboxArtifacts);
         StateFile = Resolve(repoRoot, StateFile);
         PythonServer = Resolve(repoRoot, PythonServer);
     }

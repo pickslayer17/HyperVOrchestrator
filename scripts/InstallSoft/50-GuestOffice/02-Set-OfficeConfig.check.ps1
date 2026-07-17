@@ -1,7 +1,7 @@
 $ScriptTarget = "VM"
 $ErrorActionPreference = "Stop"
 
-if (Test-Path 'C:\office_cache\configuration.xml') {
+if (Test-Path (Join-Path "@@paths.guestOfficeDir@@" "configuration.xml")) {
     Write-Host "config already present."
     exit 2
 }
