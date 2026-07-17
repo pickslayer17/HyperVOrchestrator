@@ -1,9 +1,11 @@
 import threading
 
 from listener import Listener
-from proxy import ProxyHandler
+from proxy_socks import SocksHandler
 from forwarder import ForwardHandler
 from netlog import log
+
+PROXY_KEY = "socks"
 
 
 class Manager:
@@ -14,15 +16,14 @@ class Manager:
 
     def start_proxy(self, ip, port):
         port = int(port)
-        key = f"{ip}:{port}"
         with self._lock:
-            existing = self._proxies.get(key)
+            existing = self._proxies.get(PROXY_KEY)
             if existing:
                 existing.stop()
-            listener = Listener(ip, port, ProxyHandler(), name=f"proxy:{key}")
+            listener = Listener(ip, port, SocksHandler(), name=f"socks:{ip}:{port}")
             listener.start()
-            self._proxies[key] = listener
-        log("MGR", f"proxy listening on {key}")
+            self._proxies[PROXY_KEY] = listener
+        log("MGR", f"socks proxy listening on {ip}:{port}")
 
     def start_fwd(self, bind_ip, listen_port, target_ip, target_port):
         listen_port = int(listen_port)
