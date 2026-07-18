@@ -47,7 +47,7 @@
   "office": {
     "channel": "Current",
     "edition": "64",
-    "apps": ["Word"]
+    "apps": []
   },
   "agent": {
     "orgUrl": "",
