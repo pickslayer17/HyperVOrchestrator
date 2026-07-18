@@ -4,7 +4,6 @@ $ErrorActionPreference = "Stop"
 $orgUrl   = "@@agent.orgUrl@@"
 $pool     = "@@agent.pool@@"
 $token    = "@@agent.token@@"
-$version  = "@@agent.version@@"
 $agentDir = "@@agent.dir@@"
 $addin    = "@@office.apps@@".Split(',')[0].Trim()
 
@@ -25,17 +24,6 @@ foreach ($name in $existingNames) {
     }
 }
 $agentName = "$baseName-$($maxNumber + 1)"
-
-$url = "https://download.agent.dev.azure.com/agent/$version/vsts-agent-win-x64-$version.zip"
-$zip = Join-Path $agentDir "agent.zip"
-
-New-Item -ItemType Directory -Path $agentDir -Force | Out-Null
-if (-not (Test-Path (Join-Path $agentDir 'config.cmd'))) {
-    Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing
-    Add-Type -AssemblyName System.IO.Compression.FileSystem
-    [System.IO.Compression.ZipFile]::ExtractToDirectory($zip, $agentDir)
-    Remove-Item $zip -Force
-}
 
 & "$agentDir\config.cmd" --unattended `
     --url $orgUrl `

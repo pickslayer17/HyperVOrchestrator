@@ -27,6 +27,7 @@
     "unattendXml": "",
     "officeArchive": "",
     "singboxArtifacts": "Artifacts/sing_box",
+    "agentArtifacts": "Artifacts/agent",
     "guestOfficeDir": "C:\\office_cache",
     "guestSingboxDir": "C:\\sing-box",
     "stateFile": "artifacts/state.json",

@@ -1,6 +1,6 @@
 $ScriptTarget = "VM"
 $ErrorActionPreference = "Stop"
-let it fail here
+
 $agentDir = "@@agent.dir@@"
 $marker = Join-Path $agentDir ".agent"
 
