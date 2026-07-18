@@ -55,9 +55,6 @@ public sealed class NetworkConfig
     public string DefaultNatHostIp { get; init; } = "";
     public int SubnetPrefixLength { get; init; }
     public string DnsServer { get; init; } = "";
-    public string ForwardBind { get; init; } = "";
-    public int SingboxSocksPort { get; init; }
-    public int SingboxDnsPort { get; init; }
 }
 
 public sealed class PathsConfig

@@ -38,14 +38,12 @@ public class PythonExecutor : BaseExecutor
         });
     }
 
-    public void StartForward(string bindIp, int listenPort, string targetIp, int targetPort)
+    public void StartDns(string ip, int port)
     {
-        Run("StartForward.ps1", new Dictionary<string, string>
+        Run("StartDns.ps1", new Dictionary<string, string>
         {
-            ["BindIp"] = bindIp,
-            ["ListenPort"] = listenPort.ToString(),
-            ["TargetIp"] = targetIp,
-            ["TargetPort"] = targetPort.ToString(),
+            ["Ip"] = ip,
+            ["Port"] = port.ToString(),
         });
     }
 

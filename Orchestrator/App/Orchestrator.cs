@@ -94,6 +94,7 @@ internal sealed class Orchestrator
                     continue;
                 vm = new VM { Name = name };
                 vm.NetExecutor = new NetExecutor(ExecutorTarget.VM) { RunManager = _runManager };
+                vm.SingBoxExecutor = new SingBoxExecutor { RunManager = _runManager };
             }
             else
             {
@@ -239,8 +240,8 @@ internal sealed class Orchestrator
         _viewer.SetHeader(new[]
         {
             host is null ? "Host:" : $"Host:  switch={host.SwitchName}  nat={host.NatNet?.Alias}  ip={host.NatNetInterface?.IP}",
-            server is null ? "Python server:" : $"Python server:  {(server.Alive ? "up" : "down")}",
-            vm is null ? "VM:" : $"VM:  {vm.Name}  running={vm.Running}  ip={vm.NatNetInterface?.IP}  alias={vm.NatNetInterface?.Alias}  proxy={vm.ProxyAddress}",
+            server is null ? "Python server:" : $"Python server:  {(server.Alive ? "up" : "down")}  socks={server.ProxyConnections.FirstOrDefault()}  dns={server.DnsConnections.Keys.FirstOrDefault()}",
+            vm is null ? "VM:" : $"VM:  {vm.Name}  running={vm.Running}  ip={vm.NatNetInterface?.IP}  alias={vm.NatNetInterface?.Alias}  sing-box={vm.SingBoxRunning}  proxy={vm.ProxyAddress}  dns={vm.DnsAddress}",
         });
     }
 

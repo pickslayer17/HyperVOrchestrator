@@ -1,3 +1,4 @@
+using System.Net;
 using Orchestrator.Executors;
 
 namespace Orchestrator.Models.NetWorkModels;
@@ -6,8 +7,11 @@ public class VM
 {
     public string Name;
     public bool Running;
-    public string ProxyAddress;
     public NetInterface NatNetInterface;
+    public IPEndPoint? ProxyAddress;
+    public IPEndPoint? DnsAddress;
+    public bool SingBoxRunning;
 
     public NetExecutor NetExecutor;
+    public SingBoxExecutor SingBoxExecutor;
 }

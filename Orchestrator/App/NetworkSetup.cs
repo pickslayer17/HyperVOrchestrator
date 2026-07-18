@@ -2,6 +2,7 @@ using Orchestrator.Config;
 using Orchestrator.Core;
 using global::Orchestrator.FSModels;
 using Orchestrator.Models.NetWorkModels;
+using System.Net;
 
 namespace Orchestrator.App;
 
@@ -29,7 +30,7 @@ internal class NetworkSetup
 
         return new List<(string, Action)>
         {
-            ("Ensure NAT.", () =>
+            ("Ensure NAT", () =>
             {
                 EnsureNat(network.NatName, network.SwitchName, network.SubnetPrefixLength);
             }),
@@ -43,26 +44,24 @@ internal class NetworkSetup
                 if (currentSwitch != network.SwitchName)
                     _host.NetExecutor.ConnectVmToNet(network.SwitchName);
             }),
-            ("Set VM static IP ", () =>
+            ("Set VM static IP", () =>
             {
                 EnsureVmStaticIp(network.NatName, network.SubnetPrefixLength, network.DnsServer);
             }),
-            ("Start python server", () =>
+            ("Start Python server", () =>
             {
                 StartPython();
             }),
-            ("Start proxy + apply to VM", () =>
+            ("Ensure Python SOCKS proxy", () =>
             {
-                EnsureVmProxy(_host.NatNetInterface.IP);
+                EnsurePythonProxy(_host.NatNetInterface.IP);
             }),
-            ("Forward VM RDP", () =>
+            ("Ensure Python DNS proxy", () =>
             {
-                EnsureVmRdpForward(network.ForwardBind, 3389);
+                EnsurePythonDns(_host.NatNetInterface.IP);
             }),
-            ("Enable RDP in VM", () =>
-            {
-                EnableVmRdp();
-            }),
+            ("Set SingBox config", SetSingBoxConfig),
+            ("Restart SingBox", RestartSingBox),
         };
     }
 
@@ -177,115 +176,86 @@ internal class NetworkSetup
 
     private void StartPython()
     {
-        if (!_host.PythonServer.Python.IsAlive())
-            _host.PythonServer.Python.Start();
+        if (!_host.PythonServer.PythonExecutor.IsAlive())
+            _host.PythonServer.PythonExecutor.Start();
 
-        _host.PythonServer.Alive = _host.PythonServer.Python.IsAlive();
+        LoadPythonServer();
         if (!_host.PythonServer.Alive)
             throw new InvalidOperationException("Python server did not become available after start.");
     }
 
-    private int GetHostFreePort(string netAias)
+    private void EnsurePythonProxy(string natIp)
     {
-        return _host.NetExecutor.GetFreePort(netAias);
-    }
-
-    private void StartProxy(string natIp, int proxyPort)
-    {
-        _host.PythonServer.Python.StartProxy(natIp, proxyPort);
-    }
-
-    private void EnsureVmProxy(string gateway)
-    {
-        var vmInfo = _vm.NetExecutor.GetNetworkInfo();
-        var configuredAddress = vmInfo.ProxyAddress.Trim();
-        _vm.ProxyAddress = configuredAddress;
-
-        var connections = _host.PythonServer.Python.GetAllConnections();
-        if (TryParseEndpoint(configuredAddress, out var configuredIp, out var configuredPort)
-            && configuredIp == gateway)
-        {
-            if (HasProxy(connections, configuredAddress))
-                return;
-
-            try
-            {
-                StartProxy(configuredIp, configuredPort);
-                if (HasProxy(_host.PythonServer.Python.GetAllConnections(), configuredAddress))
-                    return;
-            }
-            catch (InvalidOperationException)
-            {
-            }
-        }
-
-        var proxyPort = GetHostFreePort(_host.NatNet.Alias);
-        var proxyAddress = $"{gateway}:{proxyPort}";
-        StartProxy(gateway, proxyPort);
-        if (!HasProxy(_host.PythonServer.Python.GetAllConnections(), proxyAddress))
-            throw new InvalidOperationException($"Python proxy '{proxyAddress}' was not created.");
-        ApplyVmProxy(proxyAddress);
-    }
-
-    private static bool HasProxy(ConnectionsFSModel connections, string address)
-    {
-        return connections.Proxy.Any(proxy => proxy.Equals(address, StringComparison.OrdinalIgnoreCase));
-    }
-
-    private void ApplyVmProxy(string proxyAddress)
-    {
-        _vm.NetExecutor.SetProxy(proxyAddress, AppConfig.Current.Credentials.User);
-        var actualAddress = _vm.NetExecutor.GetNetworkInfo().ProxyAddress.Trim();
-        if (!actualAddress.Equals(proxyAddress, StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException($"Vm '{_vm.Name}' proxy was not set to '{proxyAddress}'.");
-        _vm.ProxyAddress = actualAddress;
-    }
-
-    private void EnsureVmRdpForward(string bind, int targetPort)
-    {
-        var vmIp = _vm.NetExecutor.GetNetInterfaceInfo().IP;
-        if (string.IsNullOrEmpty(vmIp))
-            throw new InvalidOperationException($"Vm '{_vm.Name}' has no IPv4 address for RDP forwarding.");
-
-        var target = $"{vmIp}:{targetPort}";
-        var connections = _host.PythonServer.Python.GetAllConnections();
-        var existing = connections.Fwd.FirstOrDefault(forward =>
-            forward.Target.Equals(target, StringComparison.OrdinalIgnoreCase)
-            && TryParseEndpoint(forward.Listen, out var listenIp, out _)
-            && listenIp == bind);
-        if (existing is not null)
-        {
-            if (!TryParseEndpoint(existing.Listen, out _, out var existingPort))
-                throw new InvalidOperationException($"Python returned invalid forward address '{existing.Listen}'.");
-            _host.PythonServer.FwdIpdsAndPorts[vmIp] = existingPort;
+        LoadPythonServer();
+        if (_host.PythonServer.ProxyConnections.Count > 0)
             return;
-        }
 
-        var forwardPort = GetHostFreePort(_host.GlobalNetInterface.Alias);
-        var listen = $"{bind}:{forwardPort}";
-        _host.PythonServer.Python.StartForward(bind, forwardPort, vmIp, targetPort);
-
-        var actual = _host.PythonServer.Python.GetAllConnections().Fwd.FirstOrDefault(forward =>
-            forward.Listen.Equals(listen, StringComparison.OrdinalIgnoreCase)
-            && forward.Target.Equals(target, StringComparison.OrdinalIgnoreCase));
-        if (actual is null)
-            throw new InvalidOperationException($"Python forward '{listen}' to '{target}' was not created.");
-        _host.PythonServer.FwdIpdsAndPorts[vmIp] = forwardPort;
+        var endpoint = new IPEndPoint(IPAddress.Parse(natIp), _host.NetExecutor.GetFreePort());
+        _host.PythonServer.PythonExecutor.StartProxy(endpoint.Address.ToString(), endpoint.Port);
+        LoadPythonServer();
+        if (!_host.PythonServer.ProxyConnections.Contains(endpoint))
+            throw new InvalidOperationException($"Python proxy '{endpoint}' was not created.");
     }
 
-    private static bool TryParseEndpoint(string endpoint, out string ip, out int port)
+    private void EnsurePythonDns(string natIp)
     {
-        ip = "";
-        port = 0;
-        var separator = endpoint.LastIndexOf(':');
-        if (separator <= 0 || separator == endpoint.Length - 1)
-            return false;
-        ip = endpoint[..separator];
-        return int.TryParse(endpoint[(separator + 1)..], out port);
+        LoadPythonServer();
+        if (_host.PythonServer.DnsConnections.Count > 0)
+            return;
+
+        var endpoint = new IPEndPoint(IPAddress.Parse(natIp), _host.NetExecutor.GetFreeUdpPort());
+        _host.PythonServer.PythonExecutor.StartDns(endpoint.Address.ToString(), endpoint.Port);
+        LoadPythonServer();
+        if (!_host.PythonServer.DnsConnections.ContainsKey(endpoint))
+            throw new InvalidOperationException($"Python DNS proxy '{endpoint}' was not created.");
     }
 
-    private void EnableVmRdp()
+    private void SetSingBoxConfig()
     {
-        _vm.NetExecutor.EnableRdp();
+        LoadPythonServer();
+        var proxy = _host.PythonServer.ProxyConnections.FirstOrDefault()
+            ?? throw new InvalidOperationException("Python SOCKS proxy is not available.");
+        var dns = _host.PythonServer.DnsConnections.Keys.FirstOrDefault()
+            ?? throw new InvalidOperationException("Python DNS proxy is not available.");
+        _vm.SingBoxExecutor.SetConfig(_host.NatNetInterface.IP, proxy.Port, dns.Port);
+        LoadSingBox();
+    }
+
+    private void RestartSingBox()
+    {
+        _vm.SingBoxExecutor.Restart();
+        LoadSingBox();
+    }
+
+    private void LoadPythonServer()
+    {
+        var server = _host.PythonServer;
+        server.Alive = server.PythonExecutor.IsAlive();
+        var connections = server.Alive ? server.PythonExecutor.GetAllConnections() : new ConnectionsFSModel();
+        server.ActiveConnections = connections.Active;
+        server.ProxyConnections = connections.Proxy.Select(ParseEndpoint).ToList();
+        server.DnsConnections = connections.Dns.ToDictionary(
+            connection => ParseEndpoint(connection.Listen),
+            connection => ParseEndpoint(connection.Target));
+    }
+
+    private void LoadSingBox()
+    {
+        var config = _vm.SingBoxExecutor.GetConfig();
+        _vm.ProxyAddress = ParseOptionalEndpoint(config.ProxyAddress);
+        _vm.DnsAddress = ParseOptionalEndpoint(config.DnsAddress);
+        _vm.SingBoxRunning = config.Running;
+    }
+
+    private static IPEndPoint? ParseOptionalEndpoint(string value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : ParseEndpoint(value);
+    }
+
+    private static IPEndPoint ParseEndpoint(string value)
+    {
+        if (!IPEndPoint.TryParse(value, out var endpoint))
+            throw new InvalidOperationException($"Invalid endpoint '{value}'.");
+        return endpoint;
     }
 }

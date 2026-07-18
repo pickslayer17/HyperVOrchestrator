@@ -1,0 +1,36 @@
+{
+  "log": {
+    "level": "info",
+    "output": "{{LOG_PATH}}"
+  },
+  "dns": {
+    "servers": [
+      { "type": "udp", "tag": "remote", "server": "{{HOST_IP}}", "server_port": "{{DNS_PORT}}" }
+    ],
+    "strategy": "ipv4_only"
+  },
+  "route": {
+    "rules": [
+      { "action": "hijack-dns", "port": 53 }
+    ]
+  },
+  "inbounds": [
+    {
+      "type": "tun",
+      "tag": "tun-in",
+      "address": ["172.19.0.1/30"],
+      "auto_route": true,
+      "strict_route": true,
+      "stack": "gvisor"
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "socks",
+      "tag": "socks-out",
+      "server": "{{HOST_IP}}",
+      "server_port": "{{SOCKS_PORT}}",
+      "version": "5"
+    }
+  ]
+}

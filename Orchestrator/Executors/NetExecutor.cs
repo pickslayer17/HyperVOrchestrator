@@ -117,23 +117,15 @@ public class NetExecutor : BaseExecutor
         });
     }
 
-    public void SetProxy(string proxyAddress, string vmUser)
-    {
-        Run("SetProxy.ps1", new Dictionary<string, string>
-        {
-            ["ProxyAddress"] = proxyAddress,
-            ["VmUser"] = vmUser,
-        });
-    }
-
-    public void EnableRdp()
-    {
-        Run("EnableRdp.ps1");
-    }
-
-    public int GetFreePort(string netName)
+    public int GetFreePort()
     {
         var output = Run("GetFreePort.ps1");
+        return int.Parse(output.Trim());
+    }
+
+    public int GetFreeUdpPort()
+    {
+        var output = Run("GetFreeUdpPort.ps1");
         return int.Parse(output.Trim());
     }
 
