@@ -4,17 +4,10 @@ $ErrorActionPreference = "Stop"
 $vmName     = "@@state.vm.name@@"
 $vmUser     = "@@credentials.user@@"
 $vmPassword = "@@credentials.password@@"
-$version    = "@@agent.version@@"
 $agentDir   = "@@agent.dir@@"
-$artifacts  = "@@paths.agentArtifacts@@"
+$agentZip   = "@@paths.agentZip@@"
 
-$url = "https://download.agent.dev.azure.com/agent/$version/vsts-agent-win-x64-$version.zip"
-$zip = Join-Path $artifacts "agent.zip"
-
-New-Item -ItemType Directory -Path $artifacts -Force | Out-Null
-if (-not (Test-Path $zip)) {
-    Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing
-}
+if (-not (Test-Path $agentZip)) { throw "agent zip not found: $agentZip" }
 
 $credential = New-Object System.Management.Automation.PSCredential($vmUser, (ConvertTo-SecureString $vmPassword -AsPlainText -Force))
 $session = New-PSSession -VMName $vmName -Credential $credential
@@ -24,7 +17,7 @@ Invoke-Command -Session $session -ArgumentList $agentDir -ScriptBlock {
     New-Item -ItemType Directory -Path $dir -Force | Out-Null
 }
 $vmZip = Invoke-Command -Session $session -ArgumentList $agentDir -ScriptBlock { param($dir) Join-Path $dir "agent.zip" }
-Copy-Item -ToSession $session -Path $zip -Destination $vmZip -Force
+Copy-Item -ToSession $session -Path $agentZip -Destination $vmZip -Force
 
 Invoke-Command -Session $session -ArgumentList $agentDir -ScriptBlock {
     param($dir)
@@ -35,4 +28,4 @@ Invoke-Command -Session $session -ArgumentList $agentDir -ScriptBlock {
 }
 
 Remove-PSSession $session
-Write-Host "agent binaries downloaded to $artifacts and extracted to $agentDir on VM."
+Write-Host "agent copied to VM and extracted to $agentDir."

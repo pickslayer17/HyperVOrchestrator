@@ -65,7 +65,7 @@ public sealed class PathsConfig
     public string UnattendXml { get; set; } = "";
     public string OfficeArchive { get; set; } = "";
     public string SingboxArtifacts { get; set; } = "";
-    public string AgentArtifacts { get; set; } = "";
+    public string AgentZip { get; set; } = "";
     public string GuestOfficeDir { get; init; } = "";
     public string GuestSingboxDir { get; init; } = "";
     public string StateFile { get; set; } = "";
@@ -79,7 +79,7 @@ public sealed class PathsConfig
         UnattendXml = Resolve(repoRoot, UnattendXml);
         OfficeArchive = Resolve(repoRoot, OfficeArchive);
         SingboxArtifacts = Resolve(repoRoot, SingboxArtifacts);
-        AgentArtifacts = Resolve(repoRoot, AgentArtifacts);
+        AgentZip = Resolve(repoRoot, AgentZip);
         StateFile = Resolve(repoRoot, StateFile);
         PythonServer = Resolve(repoRoot, PythonServer);
     }

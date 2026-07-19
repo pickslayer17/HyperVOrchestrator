@@ -27,7 +27,7 @@
     "unattendXml": "",
     "officeArchive": "",
     "singboxArtifacts": "Artifacts/sing_box",
-    "agentArtifacts": "Artifacts/agent",
+    "agentZip": "Artifacts/vsts-agent-win-x64-5.275.0.zip",
     "guestOfficeDir": "C:\\office_cache",
     "guestSingboxDir": "C:\\sing-box",
     "stateFile": "artifacts/state.json",
