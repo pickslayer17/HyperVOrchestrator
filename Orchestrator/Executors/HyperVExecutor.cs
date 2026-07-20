@@ -29,6 +29,15 @@ public class HyperVExecutor : BaseExecutor
         return output.Trim().Equals("true", StringComparison.OrdinalIgnoreCase);
     }
 
+    public void RemoveMachine(string vmName, string vmDir)
+    {
+        Run("RemoveMachine.ps1", new Dictionary<string, string>
+        {
+            ["VmName"] = vmName,
+            ["VmDir"] = vmDir,
+        });
+    }
+
     private string Run(string scriptFile, IReadOnlyDictionary<string, string>? args = null)
     {
         return RunScript("HyperVExecutor", scriptFile, args);

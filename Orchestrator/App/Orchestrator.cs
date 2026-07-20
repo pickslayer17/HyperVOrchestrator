@@ -127,6 +127,7 @@ internal sealed class Orchestrator
             "2. Setup Network",
             "3. Install Soft",
             "4. Full Setup",
+            "5. Remove Machine",
             "0. Back",
         };
         while (true)
@@ -140,6 +141,8 @@ internal sealed class Orchestrator
                 RunModel(_installSoftModel);
             else if (choice == 3)
                 FullSetup(vm);
+            else if (choice == 4)
+                RemoveMachine(vm);
             else
                 return;
         }
@@ -228,6 +231,27 @@ internal sealed class Orchestrator
     private void FinishFullSetup(string message)
     {
         WriteLine($"[FULL SETUP: {message}]");
+        _viewer.ResumeAfterRun();
+    }
+
+    private void RemoveMachine(VM vm)
+    {
+        var confirmed = _viewer.ConfirmInHeader($"Remove VM {vm.Name}?  This deletes the VM and its VHDX.  (y = confirm, any other = cancel)");
+        if (!confirmed)
+            return;
+
+        _viewer.BeginRun();
+        WriteLine($"[REMOVE MACHINE {vm.Name}]");
+        try
+        {
+            _host.HyperVExecutor.RemoveMachine(vm.Name, _config.Paths.VmDir);
+            WriteLine($"[REMOVE MACHINE {vm.Name}: done]");
+        }
+        catch (Exception exception)
+        {
+            WriteLine($"[REMOVE MACHINE {vm.Name}: failed — {exception.Message}]");
+        }
+        RefreshHeader();
         _viewer.ResumeAfterRun();
     }
 
