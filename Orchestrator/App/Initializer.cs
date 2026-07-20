@@ -3,6 +3,7 @@ using Orchestrator.Core;
 using Orchestrator.Enums;
 using Orchestrator.Executors;
 using Orchestrator.FSModels;
+using Orchestrator.Models.Azure;
 using Orchestrator.Models.NetWorkModels;
 using System.Net;
 
@@ -15,6 +16,12 @@ internal sealed class Initializer
     public Initializer(RunScriptManager runManager)
     {
         _runManager = runManager;
+    }
+
+    public void LoadAgentPool()
+    {
+        var config = AppConfig.Load(Program.RepoRoot);
+        _runManager.StateKeeper.AgentPool = new AgentPool { Name = config.Agent.Pool };
     }
 
     public Host LoadHost()

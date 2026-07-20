@@ -2,6 +2,7 @@ using Orchestrator.Config;
 using Orchestrator.Core;
 using Orchestrator.Enums;
 using Orchestrator.Executors;
+using Orchestrator.FSModels;
 using Orchestrator.Models;
 using Orchestrator.Models.NetWorkModels;
 
@@ -19,6 +20,7 @@ internal sealed class Orchestrator
     private readonly ConsoleModelViewer _viewer;
     private readonly Logger _logger;
     private readonly Step? _firstStep;
+    private readonly AzureExecutor _azureExecutor;
     private ScriptModel _activeModel;
 
     private Host _host => _runManager.StateKeeper.CurrentHost!;
@@ -35,6 +37,7 @@ internal sealed class Orchestrator
         _viewer = new ConsoleModelViewer(this);
         _viewer.FixWindowSize(CountNodes(_setupVmModel.Root));
         _logger = new Logger();
+        _azureExecutor = new AzureExecutor { RunManager = _runManager };
     }
 
     private static int CountNodes(Suite suite)
@@ -57,19 +60,156 @@ internal sealed class Orchestrator
 
     private bool SelectHost()
     {
-        _viewer.SetHeader(new[] { "Select host" });
-        var items = new List<string> { _config.Vm.Host, "0. Exit" };
+        while (true)
+        {
+            _viewer.SetHeader(new[] { "Select host" });
+            var items = new List<string>
+            {
+                $"1. {_config.Vm.Host}",
+                "2. Add Host",
+                "3. Azure Management",
+                "0. Exit",
+            };
+            var choice = _viewer.ShowMenu(items);
+
+            if (choice == items.Count - 1)
+            {
+                Console.CursorVisible = true;
+                Environment.Exit(0);
+            }
+
+            if (choice == 1)
+            {
+                AddHostLoop();
+                continue;
+            }
+
+            if (choice == 2)
+            {
+                AzureManagementLoop();
+                continue;
+            }
+
+            var initializer = new Initializer(_runManager);
+            initializer.LoadHost();
+            RefreshHeader();
+            return true;
+        }
+    }
+
+    private void AddHostLoop()
+    {
+        _viewer.SetHeader(new[] { "Add Host" });
+        var items = new List<string> { "0. Back" };
+        while (true)
+        {
+            var choice = _viewer.ShowMenu(items);
+            if (choice == items.Count - 1)
+                return;
+        }
+    }
+
+    private void AzureManagementLoop()
+    {
+        var initializer = new Initializer(_runManager);
+        initializer.LoadAgentPool();
+        var pool = _runManager.StateKeeper.AgentPool!;
+
+        while (true)
+        {
+            var agents = _azureExecutor.GetPoolAgents(pool.Name);
+            _viewer.SetHeader(new[] { $"Pool: {pool.Name}" });
+
+            var items = new List<string>();
+            for (var i = 0; i < agents.Count; i++)
+                items.Add($"{i + 1}. {agents[i].Name}  ({(agents[i].Running ? "On" : "Off")})");
+            items.Add("0. Back");
+
+            var choice = _viewer.ShowMenu(items);
+            if (choice == items.Count - 1)
+                return;
+
+            AgentActionsLoop(pool.Name, agents[choice]);
+        }
+    }
+
+    private void AgentActionsLoop(string poolName, AgentFSModel agent)
+    {
+        while (true)
+        {
+            _viewer.SetHeader(new[]
+            {
+                $"Pool: {poolName}",
+                $"Agent: {agent.Name}  status: {(agent.Running ? "On" : "Off")}",
+            });
+            var items = new List<string>
+            {
+                "1. Turn On / Off",
+                "2. Remove agent",
+                "0. Back",
+            };
+            var choice = _viewer.ShowMenu(items);
+            if (choice == items.Count - 1)
+                return;
+
+            if (choice == 0)
+            {
+                if (!TurnOnOffAgentLoop(agent))
+                    return;
+            }
+            else if (choice == 1)
+            {
+                if (RemoveAgent(agent))
+                    return;
+            }
+        }
+    }
+
+    private bool TurnOnOffAgentLoop(AgentFSModel agent)
+    {
+        var items = new List<string> { "1. On", "2. Off", "0. Back" };
         var choice = _viewer.ShowMenu(items);
         if (choice == items.Count - 1)
-        {
-            Console.CursorVisible = true;
-            Environment.Exit(0);
-        }
+            return true;
 
-        var initializer = new Initializer(_runManager);
-        initializer.LoadHost();
-        RefreshHeader();
+        var turnOff = choice == 1;
+        _viewer.BeginRun();
+        WriteLine($"[AGENT {agent.Name}: turning {(turnOff ? "off" : "on")}]");
+        try
+        {
+            _azureExecutor.TurnOnOffAgent(agent.Name, turnOff);
+            agent.Running = !turnOff;
+            WriteLine($"[AGENT {agent.Name}: done]");
+        }
+        catch (Exception exception)
+        {
+            WriteLine($"[AGENT {agent.Name}: failed — {exception.Message}]");
+        }
+        _viewer.ResumeAfterRun();
         return true;
+    }
+
+    private bool RemoveAgent(AgentFSModel agent)
+    {
+        var confirmed = _viewer.ConfirmInHeader($"Remove agent {agent.Name}?  (y = confirm, any other = cancel)");
+        if (!confirmed)
+            return false;
+
+        _viewer.BeginRun();
+        WriteLine($"[AGENT {agent.Name}: removing]");
+        try
+        {
+            _azureExecutor.RemoveAgent(agent.Name);
+            WriteLine($"[AGENT {agent.Name}: removed]");
+            _viewer.ResumeAfterRun();
+            return true;
+        }
+        catch (Exception exception)
+        {
+            WriteLine($"[AGENT {agent.Name}: failed — {exception.Message}]");
+            _viewer.ResumeAfterRun();
+            return false;
+        }
     }
 
     private void VmLoop()

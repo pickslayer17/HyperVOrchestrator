@@ -1,4 +1,5 @@
 using System.Reflection;
+using Orchestrator.Models.Azure;
 using Orchestrator.Models.NetWorkModels;
 
 namespace Orchestrator.Core;
@@ -7,6 +8,7 @@ internal sealed class StateKeeper
 {
     public Host? CurrentHost { get; private set; }
     public VM? CurrentVm { get; private set; }
+    public AgentPool? AgentPool { get; set; }
 
     public void SetCurrentHost(Host host)
     {
