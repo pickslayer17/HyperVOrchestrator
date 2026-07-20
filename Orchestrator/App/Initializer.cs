@@ -1,5 +1,6 @@
 using Orchestrator.Config;
 using Orchestrator.Core;
+using Orchestrator.Enums;
 using Orchestrator.Executors;
 using Orchestrator.FSModels;
 using Orchestrator.Models.NetWorkModels;
@@ -72,6 +73,9 @@ internal sealed class Initializer
         var host = state.CurrentHost!;
         state.SetCurrentVm(vm);
         LoadPythonServer(host.PythonServer);
+
+        if (Enum.TryParse<OfficeApp>(vm.Name, ignoreCase: true, out var officeApp))
+            vm.OfficeApp = officeApp;
 
         vm.Running = host.HyperVExecutor.IsVMRunning(vm.Name);
         if (!vm.Running)

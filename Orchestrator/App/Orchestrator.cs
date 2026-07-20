@@ -270,7 +270,7 @@ internal sealed class Orchestrator
         {
             host is null ? "Host:" : $"Host:  switch={host.SwitchName}  nat={host.NatNet?.Alias}  ip={host.NatNetInterface?.IP}",
             server is null ? "Python server:" : $"Python server:  {(server.Alive ? "up" : "down")}  socks={server.ProxyConnections.FirstOrDefault()}  dns={server.DnsConnections.Keys.FirstOrDefault()}",
-            vm is null ? "VM:" : $"VM:  {vm.Name}  running={vm.Running}  ip={vm.NatNetInterface?.IP}  alias={vm.NatNetInterface?.Alias}  sing-box={vm.SingBoxRunning}  proxy={vm.ProxyAddress}  dns={vm.DnsAddress}",
+            vm is null ? "VM:" : $"VM:'{vm.Name}' app={vm.OfficeApp}  running={vm.Running}  ip={vm.NatNetInterface?.IP} sing-box={vm.SingBoxRunning} proxy={vm.ProxyAddress} dns={vm.DnsAddress?.Port}",
         });
     }
 
