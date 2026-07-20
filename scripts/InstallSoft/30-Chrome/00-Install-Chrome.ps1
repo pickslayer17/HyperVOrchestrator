@@ -4,7 +4,8 @@ $ErrorActionPreference = "Stop"
 $installer = Join-Path $env:TEMP "chrome_installer.exe"
 $url = "https://dl.google.com/chrome/install/standalonesetup64.exe"
 
-Invoke-WebRequest -Uri $url -OutFile $installer -UseBasicParsing
+& curl.exe -L -o $installer $url
+if ($LASTEXITCODE -ne 0) { throw "curl download failed (exit $LASTEXITCODE)" }
 Start-Process -FilePath $installer -ArgumentList "/silent","/install" -Wait
 Remove-Item $installer -Force -ErrorAction SilentlyContinue
 
