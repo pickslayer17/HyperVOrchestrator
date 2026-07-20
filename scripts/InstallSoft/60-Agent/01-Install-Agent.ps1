@@ -5,8 +5,6 @@ $orgUrl   = "@@agent.orgUrl@@"
 $pool     = "@@agent.pool@@"
 $token    = "@@agent.token@@"
 $agentDir = "@@agent.dir@@"
-$vmUser   = "@@credentials.user@@"
-$vmPass   = "@@credentials.password@@"
 
 $headers = @{ Authorization = "Basic " + [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(":$token")) }
 
@@ -36,10 +34,7 @@ if (Test-Path (Join-Path $agentDir ".agent")) {
     --pool $pool `
     --agent $agentName `
     --replace `
-    --work "_work" `
-    --runAsService `
-    --windowsLogonAccount $vmUser `
-    --windowsLogonPassword $vmPass
+    --work "_work"
 if ($LASTEXITCODE -ne 0) { throw "config.cmd failed (exit $LASTEXITCODE)" }
 
-Write-Host "agent '$agentName' configured as service -> $orgUrl (pool: $pool)"
+Write-Host "agent '$agentName' configured -> $orgUrl (pool: $pool)"
