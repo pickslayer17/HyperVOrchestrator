@@ -5,7 +5,7 @@ $orgUrl   = "@@agent.orgUrl@@"
 $pool     = "@@agent.pool@@"
 $token    = "@@agent.token@@"
 $agentDir = "@@agent.dir@@"
-$addin    = "@@office.apps@@".Split(',')[0].Trim()
+$addin    = "@@state.vm.officeApp@@".Trim()
 
 $headers = @{ Authorization = "Basic " + [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(":$token")) }
 

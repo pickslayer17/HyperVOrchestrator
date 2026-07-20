@@ -1,7 +1,7 @@
 $ScriptTarget = "VM"
 $ErrorActionPreference = "Stop"
 
-$wanted = @("@@office.apps@@".Split(',') | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+$wanted = @("@@state.vm.officeApp@@".Trim() | Where-Object { $_ })
 $exeByApp = @{
     Word       = 'WINWORD.EXE'
     Excel      = 'EXCEL.EXE'

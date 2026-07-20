@@ -1,5 +1,6 @@
 using Orchestrator.Config;
 using Orchestrator.Core;
+using Orchestrator.Enums;
 using Orchestrator.Executors;
 using Orchestrator.Models;
 using Orchestrator.Models.NetWorkModels;
@@ -89,10 +90,10 @@ internal sealed class Orchestrator
             VM vm;
             if (choice == items.Count - 2)
             {
-                var name = ReadVmName();
-                if (string.IsNullOrWhiteSpace(name))
+                var app = ReadOfficeApp();
+                if (app is null)
                     continue;
-                vm = new VM { Name = name };
+                vm = new VM { Name = app.Value.ToString(), OfficeApp = app.Value };
                 vm.NetExecutor = new NetExecutor(ExecutorTarget.VM) { RunManager = _runManager };
                 vm.SingBoxExecutor = new SingBoxExecutor { RunManager = _runManager };
             }
@@ -108,15 +109,19 @@ internal sealed class Orchestrator
         }
     }
 
-    private string ReadVmName()
+    private OfficeApp? ReadOfficeApp()
     {
         _viewer.SetHeader(new[] { "Create new VM" });
-        Console.Clear();
-        Console.CursorVisible = true;
-        Console.Write("  VM name (empty = cancel): ");
-        var name = Console.ReadLine()?.Trim() ?? "";
-        Console.CursorVisible = false;
-        return name;
+        var apps = Enum.GetValues<OfficeApp>();
+        var items = new List<string>();
+        for (var i = 0; i < apps.Length; i++)
+            items.Add($"{i + 1}. {apps[i]}");
+        items.Add("0. Back");
+
+        var choice = _viewer.ShowMenu(items);
+        if (choice == items.Count - 1)
+            return null;
+        return apps[choice];
     }
 
     private void VmActionsLoop(VM vm)

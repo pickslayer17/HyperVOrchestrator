@@ -114,7 +114,6 @@ public sealed class OfficeConfig
 {
     public string Channel { get; init; } = "";
     public string Edition { get; init; } = "";
-    public string[] Apps { get; init; } = [];
 }
 
 public sealed class AgentConfig

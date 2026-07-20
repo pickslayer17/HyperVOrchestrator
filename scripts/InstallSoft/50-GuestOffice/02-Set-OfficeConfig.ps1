@@ -2,7 +2,7 @@ $ScriptTarget = "VM"
 $ErrorActionPreference = "Stop"
 
 $guestDir = "@@paths.guestOfficeDir@@"
-$wanted = @("@@office.apps@@".Split(',') | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+$wanted = @("@@state.vm.officeApp@@".Trim() | Where-Object { $_ })
 $allApps = @('Access','Excel','Groove','Lync','OneDrive','OneNote','Outlook','PowerPoint','Publisher','Word','Teams')
 $excluded = $allApps | Where-Object { $wanted -notcontains $_ }
 $excludeLines = ($excluded | ForEach-Object { "      <ExcludeApp ID=`"$_`" />" }) -join "`r`n"
