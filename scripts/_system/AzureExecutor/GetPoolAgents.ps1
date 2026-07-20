@@ -14,6 +14,6 @@ $agentsUri = "$orgUrl/_apis/distributedtask/pools/$poolId/agents?api-version=7.1
 $agents = (Invoke-RestMethod -Uri $agentsUri -Headers $headers).value
 
 $result = @($agents | ForEach-Object {
-	[PSCustomObject]@{ Id = [int]$_.id; Name = "$($_.name)"; Running = [bool]$_.enabled }
+	[PSCustomObject]@{ Id = [int]$_.id; Name = "$($_.name)"; Running = [bool]$_.enabled; Online = ("$($_.status)" -eq "online") }
 })
 ConvertTo-Json @($result) -Depth 3

@@ -122,7 +122,7 @@ internal sealed class Orchestrator
 
             var items = new List<string>();
             for (var i = 0; i < agents.Count; i++)
-                items.Add($"{i + 1}. {agents[i].Name}  ({(agents[i].Running ? "On" : "Off")})");
+                items.Add($"{i + 1}. {agents[i].Name}  ({(agents[i].Running ? "On" : "Off")}, {(agents[i].Online ? "Online" : "Offline")})");
             items.Add("0. Back");
 
             var choice = _viewer.ShowMenu(items);
@@ -140,7 +140,7 @@ internal sealed class Orchestrator
             _viewer.SetHeader(new[]
             {
                 $"Pool: {poolName}",
-                $"Agent: {agent.Name}  status: {(agent.Running ? "On" : "Off")}",
+                $"Agent: {agent.Name}  status: {(agent.Running ? "On" : "Off")}  connection: {(agent.Online ? "Online" : "Offline")}",
             });
             var items = new List<string>
             {
