@@ -5,7 +5,6 @@ $orgUrl   = "@@agent.orgUrl@@"
 $pool     = "@@agent.pool@@"
 $token    = "@@agent.token@@"
 $agentDir = "@@agent.dir@@"
-$addin    = "@@state.vm.officeApp@@".Trim()
 
 $headers = @{ Authorization = "Basic " + [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(":$token")) }
 
@@ -15,7 +14,7 @@ $poolId = (Invoke-RestMethod -Uri $poolUri -Headers $headers).value[0].id
 $agentsUri = "$orgUrl/_apis/distributedtask/pools/$poolId/agents?api-version=7.1"
 $existingNames = (Invoke-RestMethod -Uri $agentsUri -Headers $headers).value.name
 
-$baseName = "$env:COMPUTERNAME-$addin-desktop"
+$baseName = "$env:COMPUTERNAME-desktop"
 $maxNumber = 0
 foreach ($name in $existingNames) {
     if ($name -match "^$([regex]::Escape($baseName))-(\d+)$") {
