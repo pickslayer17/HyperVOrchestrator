@@ -26,6 +26,10 @@ foreach ($name in $existingNames) {
 }
 $agentName = "$baseName-$($maxNumber + 1)"
 
+if (Test-Path (Join-Path $agentDir ".agent")) {
+    & "$agentDir\config.cmd" remove --unattended --auth pat --token $token
+}
+
 & "$agentDir\config.cmd" --unattended `
     --url $orgUrl `
     --auth pat --token $token `

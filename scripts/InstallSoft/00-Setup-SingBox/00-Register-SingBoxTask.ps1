@@ -7,7 +7,7 @@ $taskName = "SingBox"
 $exePath  = Join-Path $guestDir "sing-box.exe"
 $config   = Join-Path $guestDir "config.json"
 
-$action = New-ScheduledTaskAction -Execute $exePath -Argument "run -c `"$config`"" -WorkingDirectory $guestDir
+$action = New-ScheduledTaskAction -Execute "conhost.exe" -Argument "--headless `"$exePath`" run -c `"$config`"" -WorkingDirectory $guestDir
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User $vmUser
 $principal = New-ScheduledTaskPrincipal -UserId $vmUser -LogonType Interactive -RunLevel Highest
 $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit ([TimeSpan]::Zero)
