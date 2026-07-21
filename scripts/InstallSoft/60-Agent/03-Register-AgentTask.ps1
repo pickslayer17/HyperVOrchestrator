@@ -8,7 +8,7 @@ $runCmd   = Join-Path $agentDir "run.cmd"
 
 if (-not (Test-Path $runCmd)) { throw "run.cmd not found: $runCmd (agent not configured?)" }
 
-$action = New-ScheduledTaskAction -Execute $runCmd -WorkingDirectory $agentDir
+$action = New-ScheduledTaskAction -Execute "cmd.exe" -Argument "/c start `"$taskName`" /min `"$runCmd`"" -WorkingDirectory $agentDir
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User $vmUser
 $principal = New-ScheduledTaskPrincipal -UserId $vmUser -LogonType Interactive
 $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit ([TimeSpan]::Zero)
