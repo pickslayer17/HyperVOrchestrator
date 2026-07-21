@@ -1,15 +1,15 @@
 # Guest reboot helper (injected by the engine). Host-side: fires a SYSTEM scheduled
 # task inside the guest that runs `shutdown /r` (fire and forget), then confirms the
-# reboot actually started by watching the guest session drop. Falls back to a hard
-# Restart-VM if the graceful reboot does not take within the timeout.
+# reboot actually took by waiting for the guest to FULLY go down (Hyper-V heartbeat
+# loses contact) — not just a session blip, so the next step never catches the stale
+# pre-reboot session. Falls back to a hard Restart-VM if the guest never goes down.
 
 function Invoke-GuestReboot {
     $VmName = "@@state.vm.name@@"
     $VmUser = "@@credentials.user@@"
     $VmPassword = "@@credentials.password@@"
-    $ConfirmTimeoutSeconds = 15
+    $DownTimeoutSeconds = 90
     $credential = New-Object System.Management.Automation.PSCredential($VmUser, (ConvertTo-SecureString $VmPassword -AsPlainText -Force))
-    $vmUserPattern = [regex]::Escape($VmUser)
     $stamp = { (Get-Date -Format 'HH:mm:ss') }
 
     $vm = Get-VM -Name $VmName
@@ -28,26 +28,24 @@ function Invoke-GuestReboot {
     }
     Remove-PSSession $session -ErrorAction SilentlyContinue
 
-    Write-Host "[$(& $stamp)] waiting for guest session to drop..."
-    $deadline = (Get-Date).AddSeconds($ConfirmTimeoutSeconds)
+    # Wait for the guest to FULLY go down: heartbeat loses contact (or state leaves Running).
+    # 'Ok*' heartbeat = Windows still up (incl. the "Restarting" screen); NoContact/empty = gone.
+    Write-Host "[$(& $stamp)] waiting for guest to go fully down (heartbeat)..."
+    $deadline = (Get-Date).AddSeconds($DownTimeoutSeconds)
     $down = $false
     while ((Get-Date) -lt $deadline) {
-        $job = Start-Job { param($n, $c) Invoke-Command -VMName $n -Credential $c -ScriptBlock { query session } } -ArgumentList $VmName, $credential
-        if (Wait-Job $job -Timeout 3) {
-            $out = Receive-Job $job -ErrorAction SilentlyContinue
-            Remove-Job $job -Force -ErrorAction SilentlyContinue
-            if ($out -notmatch $vmUserPattern) { Write-Host "[$(& $stamp)] session gone — reboot confirmed"; $down = $true; break }
-            Write-Host "[$(& $stamp)] session still alive"
-        } else {
-            Remove-Job $job -Force -ErrorAction SilentlyContinue
-            Write-Host "[$(& $stamp)] guest not responding — reboot confirmed"; $down = $true; break
+        $v = Get-VM -Name $VmName
+        $hb = "$($v.Heartbeat)"
+        if ($v.State -ne 'Running' -or $hb -notlike 'Ok*') {
+            Write-Host "[$(& $stamp)] guest down (state=$($v.State) heartbeat=$hb) — reboot confirmed"
+            $down = $true; break
         }
         Start-Sleep -Seconds 1
     }
 
     if (-not $down) {
-        Write-Host "[$(& $stamp)] graceful reboot did not take within ${ConfirmTimeoutSeconds}s — forcing Restart-VM"
+        Write-Host "[$(& $stamp)] guest never went down within ${DownTimeoutSeconds}s — forcing Restart-VM"
         Restart-VM -Name $VmName -Force
     }
-    Write-Host "[$(& $stamp)] reboot issued."
+    Write-Host "[$(& $stamp)] reboot confirmed."
 }
