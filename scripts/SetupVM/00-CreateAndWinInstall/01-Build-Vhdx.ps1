@@ -65,8 +65,23 @@ try {
     # unattend
     $pantherDir = "${windowsLetter}:\Windows\Panther"
     mkdir $pantherDir -Force
-    Copy-Item $unattendXml "$pantherDir\unattend.xml"
-    Write-Host "Unattend.xml copied to Panther."
+
+    [xml]$unattend = Get-Content $unattendXml -Raw
+    $ns = New-Object Xml.XmlNamespaceManager $unattend.NameTable
+    $ns.AddNamespace("u", "urn:schemas-microsoft-com:unattend")
+
+    $unattend.SelectSingleNode("//u:ComputerName", $ns).InnerText = "@@state.vm.name@@"
+
+    $localAccount = $unattend.SelectSingleNode("//u:UserAccounts/u:LocalAccounts/u:LocalAccount", $ns)
+    $localAccount.SelectSingleNode("u:Name", $ns).InnerText = "@@credentials.user@@"
+    $localAccount.SelectSingleNode("u:Password/u:Value", $ns).InnerText = "@@credentials.password@@"
+
+    $autoLogon = $unattend.SelectSingleNode("//u:AutoLogon", $ns)
+    $autoLogon.SelectSingleNode("u:Username", $ns).InnerText = "@@credentials.user@@"
+    $autoLogon.SelectSingleNode("u:Password/u:Value", $ns).InnerText = "@@credentials.password@@"
+
+    [IO.File]::WriteAllText("$pantherDir\unattend.xml", $unattend.OuterXml, [Text.UTF8Encoding]::new($false))
+    Write-Host "Unattend.xml written to Panther."
 }
 finally {
     # cleanup mounts + drive letters

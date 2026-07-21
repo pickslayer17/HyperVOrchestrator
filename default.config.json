@@ -23,8 +23,7 @@
   "paths": {
     "vmDir": "",
     "windowsIso": "",
-    "unattendTemplate": "templates/autounattend.template.xml",
-    "unattendXml": "",
+    "unattendXml": "templates/autounattend.xml",
     "officeArchive": "",
     "singboxArtifacts": "Artifacts/sing_box",
     "agentZip": "Artifacts/vsts-agent-win-x64-5.275.0.zip",

@@ -61,7 +61,6 @@ public sealed class PathsConfig
 {
     public string VmDir { get; set; } = "";
     public string WindowsIso { get; set; } = "";
-    public string UnattendTemplate { get; set; } = "";
     public string UnattendXml { get; set; } = "";
     public string OfficeArchive { get; set; } = "";
     public string SingboxArtifacts { get; set; } = "";
@@ -75,7 +74,6 @@ public sealed class PathsConfig
     public void ResolveAgainst(string repoRoot)
     {
         WindowsIso = Resolve(repoRoot, WindowsIso);
-        UnattendTemplate = Resolve(repoRoot, UnattendTemplate);
         UnattendXml = Resolve(repoRoot, UnattendXml);
         OfficeArchive = Resolve(repoRoot, OfficeArchive);
         SingboxArtifacts = Resolve(repoRoot, SingboxArtifacts);
