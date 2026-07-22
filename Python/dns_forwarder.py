@@ -1,7 +1,8 @@
 import socket
 import select
 import threading
-import subprocess
+import ctypes
+from ctypes import wintypes
 
 from netlog import log
 
@@ -61,16 +62,28 @@ class DnsForwarder:
         log("DNSFWD", f"stopped on {self.bind_ip}:{self.port}")
 
     def _discover_upstream(self):
-        ps = (
-            "Get-DnsClientServerAddress -AddressFamily IPv4 | "
-            "Where-Object { $_.ServerAddresses.Count -gt 0 -and $_.InterfaceAlias -notlike '*Loopback*' } | "
-            "Select-Object -ExpandProperty ServerAddresses -First 1"
-        )
-        result = subprocess.run(
-            ["powershell", "-NoProfile", "-Command", ps],
-            capture_output=True, text=True, timeout=15,
-        )
-        upstream = result.stdout.strip().splitlines()[0].strip()
-        if not upstream:
-            raise RuntimeError("could not discover host DNS server")
-        return upstream
+        try:
+            return self._query_os_dns()
+        except Exception as e:
+            log("DNSFWD", f"discover upstream FAILED: {e}")
+            raise
+
+    def _query_os_dns(self):
+        DNS_CONFIG_DNS_SERVER_LIST = 6
+        buf_len = wintypes.DWORD(0)
+        dnsapi = ctypes.windll.dnsapi
+        dnsapi.DnsQueryConfig(DNS_CONFIG_DNS_SERVER_LIST, 0, None, None, None, ctypes.byref(buf_len))
+        if buf_len.value == 0:
+            raise RuntimeError("DnsQueryConfig returned empty server list")
+
+        buf = (ctypes.c_byte * buf_len.value)()
+        rc = dnsapi.DnsQueryConfig(DNS_CONFIG_DNS_SERVER_LIST, 0, None, None, buf, ctypes.byref(buf_len))
+        if rc != 0:
+            raise RuntimeError(f"DnsQueryConfig failed with code {rc}")
+
+        count = ctypes.cast(buf, ctypes.POINTER(wintypes.DWORD))[0]
+        if count == 0:
+            raise RuntimeError("no DNS servers reported by OS")
+
+        addr = ctypes.cast(buf, ctypes.POINTER(wintypes.DWORD))[1]
+        return socket.inet_ntoa(addr.to_bytes(4, "little"))
