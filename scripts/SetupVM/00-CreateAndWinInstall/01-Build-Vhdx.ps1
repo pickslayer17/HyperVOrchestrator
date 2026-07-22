@@ -13,6 +13,8 @@ $vhdPath = Join-Path "@@paths.vmDir@@" "$vmName.vhdx"
 $usedLetters = @()
 $usedLetters += (Get-Volume | Where-Object { $_.DriveLetter } | ForEach-Object { $_.DriveLetter })
 $usedLetters += (Get-Partition | Where-Object { $_.DriveLetter } | ForEach-Object { $_.DriveLetter })
+$usedLetters += ([System.IO.DriveInfo]::GetDrives() | ForEach-Object { $_.Name.TrimEnd(':', '\') })
+$usedLetters = $usedLetters | ForEach-Object { [char]$_ } | Sort-Object -Unique
 $freeLetters = [char[]](68..90) | Where-Object { $_ -notin $usedLetters }
 if ($freeLetters.Count -lt 2) { throw "Not enough free drive letters" }
 $efiLetter = [string]$freeLetters[0]
