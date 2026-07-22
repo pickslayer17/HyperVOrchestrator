@@ -10,4 +10,5 @@ $memoryGb = @@vm.memoryGb@@
 
 Set-VMMemory -VMName $vmName -DynamicMemoryEnabled $true -MinimumBytes 1GB -StartupBytes 1GB -MaximumBytes $memoryGb
 Set-VMVideo -VMName $vmName -HorizontalResolution $videoWidth -VerticalResolution $videoHeight -ResolutionType Single
-Set-VM -VMName $vmName -EnhancedSessionTransportType <<ver::5=None,7=VMBus>>
+$transport = if ([enum]::GetNames([Microsoft.HyperV.PowerShell.EnhancedSessionTransportType]) -contains 'None') { 'None' } else { 'VMBus' }
+Set-VM -VMName $vmName -EnhancedSessionTransportType $transport
