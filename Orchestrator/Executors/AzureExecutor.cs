@@ -38,6 +38,16 @@ public class AzureExecutor : BaseExecutor
         });
     }
 
+    public void SetAgentCapability(string agentName, string capabilityName, string capabilityValue)
+    {
+        Run("SetAgentCapability.ps1", new Dictionary<string, string>
+        {
+            ["AgentName"] = agentName,
+            ["CapabilityName"] = capabilityName,
+            ["CapabilityValue"] = capabilityValue,
+        });
+    }
+
     private string Run(string scriptFile, IReadOnlyDictionary<string, string>? args = null)
     {
         return RunScript("AzureExecutor", scriptFile, args);

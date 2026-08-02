@@ -146,6 +146,7 @@ internal sealed class Orchestrator
             {
                 "1. Turn On / Off",
                 "2. Remove agent",
+                "3. Set vstest capability",
                 "0. Back",
             };
             var choice = _viewer.ShowMenu(items);
@@ -161,6 +162,10 @@ internal sealed class Orchestrator
             {
                 if (RemoveAgent(agent))
                     return;
+            }
+            else if (choice == 2)
+            {
+                SetVsTestCapability(agent);
             }
         }
     }
@@ -187,6 +192,22 @@ internal sealed class Orchestrator
         }
         _viewer.ResumeAfterRun();
         return true;
+    }
+
+    private void SetVsTestCapability(AgentFSModel agent)
+    {
+        _viewer.BeginRun();
+        WriteLine($"[AGENT {agent.Name}: setting capability vstest=1]");
+        try
+        {
+            _azureExecutor.SetAgentCapability(agent.Name, "vstest", "1");
+            WriteLine($"[AGENT {agent.Name}: done]");
+        }
+        catch (Exception exception)
+        {
+            WriteLine($"[AGENT {agent.Name}: failed — {exception.Message}]");
+        }
+        _viewer.ResumeAfterRun();
     }
 
     private bool RemoveAgent(AgentFSModel agent)
